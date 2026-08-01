@@ -11,7 +11,7 @@
     --amber:#854f0b; --amberbg:#faeeda; --blue:#0c447c; --bluebg:#e6f1fb;
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;padding:24px 12px;}
+  body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;flex-direction:column;align-items:center;padding:24px 12px;}
   .phone{position:relative;width:390px;max-width:100%;height:780px;background:var(--card);border-radius:28px;border:1px solid var(--border);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;flex-direction:column;}
   .statusbar{height:14px;flex:0 0 auto;}
   .screen{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;padding:14px 16px 84px;-webkit-overflow-scrolling:touch;}
@@ -256,7 +256,7 @@
 </style>
 </head>
 <body>
-<div style="max-width:390px;margin:0 auto 14px;padding:10px 14px;background:#faeeda;color:#854f0b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:12.5px;line-height:1.5;border-radius:10px;">
+<div style="max-width:390px;margin:0 auto 10px;padding:0 6px;color:#854f0b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:10.5px;font-style:italic;line-height:1.45;text-align:center;">
   This is an early browser preview of Worldview Builder, used during development — not the finished app. Some features (like PDF export) may not work correctly here. <a href="index.html#app" style="color:#854f0b;text-decoration:underline;">Back to the Worldview Builder page</a>, where a link to the real App Store listing will appear once it's live.
 </div>
 <div class="phone">
