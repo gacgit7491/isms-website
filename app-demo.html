@@ -67,14 +67,9 @@
   table.cmp th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--border-strong,var(--border));}
   table.cmp td{padding:8px 4px;border-bottom:1px solid var(--border);vertical-align:top;}
   table.cmp td:first-child{font-weight:500;}
-  .capsolism-note{vertical-align:middle;color:var(--muted);font-style:italic;text-align:left;font-size:9.5px;line-height:1.35;}
-  /* Curly-brace pointer beside (not above) the Capsolism note: a large "{" glyph,
-     stretched vertically, sitting to the left of the text and centered on it —
-     gestures at "these two rows bracket into one note" without claiming to touch
-     both row edges exactly (that would need JS-measured height, not attempted here). */
-  .capsolism-inner{display:flex;align-items:center;gap:5px;}
-  .capsolism-brace{flex:0 0 auto;font-size:2.6em;font-weight:400;font-style:normal;line-height:1;color:var(--muted);transform:scaleY(1.4);transform-origin:center;}
-  .capsolism-text{display:block;text-align:left;}
+  /* Sits as its own full-width row directly below Socialism (not beside both rows
+     via a merged/rowspan cell) — matches the native app's BuilderView ComparisonTable. */
+  .capsolism-note{color:var(--muted);font-style:italic;text-align:left;font-size:10.5px;line-height:1.35;padding-top:4px;padding-bottom:4px;}
   /* Real (not display:none) but visually negligible block after #vision-wrap — see
      the trailing-sentinel comment near its markup for why this exists. */
   .print-sentinel{height:1px;line-height:1px;font-size:1px;overflow:hidden;color:transparent;}
@@ -447,7 +442,7 @@
       <div id="build-summary"></div>
       <div id="table-wrap">
         <table class="cmp">
-          <thead><tr><th>Component</th><th>Your choice</th><th>Author's model</th><th></th></tr></thead>
+          <thead><tr><th>Component</th><th>Your choice</th><th>Author's model</th></tr></thead>
           <tbody id="build-table"></tbody>
         </table>
       </div>
@@ -1154,36 +1149,20 @@ function renderBuilder(){
 
   let tableHtml = "";
   pillarRows.forEach(r=>{
-    // Capitalism and Socialism share one merged author's-column cell spanning both
-    // rows — the author's own coined term, Capsolism, sits between them there to
-    // show he treats the pair as joined, without it existing as its own ism anywhere.
-    if(r.id==="capitalism"){
-      // "Liked" now shown in each of the Capitalism/Socialism rows individually,
-      // same left-aligned style as every other pillar row — no longer merged into
-      // one centered rowspan cell. The Capsolism explanatory note moves into its
-      // own 4th column, right of "Liked," vertically centered across both rows via
-      // rowspan (the <thead>'s matching empty 4th <th> keeps the header aligned;
-      // every other row simply leaves this column blank, which is valid HTML).
-      tableHtml += `
-      <tr>
-        <td>${r.label}</td>
-        <td class="${r.liked?'agree':'pending'}">${r.liked?'Liked':'&ndash;'}</td>
-        <td class="agree">Liked</td>
-        <td class="capsolism-note" rowspan="2"><div class="capsolism-inner"><span class="capsolism-brace" aria-hidden="true">{</span><span class="capsolism-text">Inseparable for author, hence<br>&ldquo;Capsolism&rdquo;</span></div></td>
-      </tr>`;
-    } else if(r.id==="socialism"){
-      tableHtml += `
-      <tr>
-        <td>${r.label}</td>
-        <td class="${r.liked?'agree':'pending'}">${r.liked?'Liked':'&ndash;'}</td>
-        <td class="agree">Liked</td>
-      </tr>`;
-    } else {
-      tableHtml += `
+    tableHtml += `
       <tr>
         <td>${r.label}</td>
         <td class="${r.liked?'agree':'pending'}">${r.liked?'Liked':'&ndash;'}</td>
         <td class="agree">${r.authors}</td>
+      </tr>`;
+    if(r.id==="socialism"){
+      // Capitalism and Socialism are two separate rows above, but the author treats
+      // them as one inseparable concept — noted once, right after Socialism (the
+      // second of the pair), as its own full-width row below rather than a merged
+      // cell beside both rows. Matches the native app's BuilderView ComparisonTable.
+      tableHtml += `
+      <tr>
+        <td colspan="3" class="capsolism-note">{ Inseparable for author, hence &ldquo;Capsolism&rdquo;</td>
       </tr>`;
     }
     subPillars.filter(s=>s.parentPillar===r.id).forEach(s=>{
