@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worldview Builder — prototype</title>
+<style>
+  :root{
+    --bg:#f4f3ee; --card:#ffffff; --border:#ddd8cc; --text:#232220; --muted:#6b6860;
+    --green:#3b6d11; --greenbg:#eaf3de; --red:#791f1f; --redbg:#fcebeb;
+    --amber:#854f0b; --amberbg:#faeeda; --blue:#0c447c; --bluebg:#e6f1fb;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;padding:24px 12px;}
+  .phone{position:relative;width:390px;max-width:100%;height:780px;background:var(--card);border-radius:28px;border:1px solid var(--border);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;flex-direction:column;}
+  .statusbar{height:14px;flex:0 0 auto;}
+  .screen{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;padding:14px 16px 84px;-webkit-overflow-scrolling:touch;}
+  h1{font-size:18px;margin:0 0 2px;font-weight:600;}
+  h2{font-size:15px;margin:0 0 8px;font-weight:600;}
+  .sub{font-size:12px;color:var(--muted);margin:0 0 14px;}
+  input[type=text]{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#faf9f6;}
+  .chips{display:flex;gap:6px;overflow-x:auto;margin:10px 0 12px;padding-bottom:2px;}
+  .chip{flex:0 0 auto;font-size:11px;padding:5px 11px;border-radius:12px;border:1px solid var(--border);background:#faf9f6;color:var(--muted);white-space:nowrap;cursor:pointer;}
+  .chip.active{background:var(--text);color:#fff;border-color:var(--text);}
+  .row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .row:last-child{border-bottom:none;}
+  .likedot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;border:1.5px solid var(--border);background:transparent;}
+  .likedot.on{background:var(--green);border-color:var(--green);}
+  .rowtext{flex:1;min-width:0;}
+  .rowtitle{font-size:13.5px;font-weight:500;}
+  .rowsub{font-size:11px;color:var(--muted);}
+  .chevron{font-size:11px;color:var(--muted);transition:transform .15s;}
+  /* TEST (2026-07-15): row-level like toggle + "read first" affordance, Agnosticism only.
+     The box+label+switch are grouped in .row-actions so they wrap to a second line
+     together if a longer ism name leaves no room, rather than splitting oddly. */
+  .row-readfirst{flex-wrap:wrap;row-gap:8px;}
+  .row-readfirst .rowtext{flex:0 1 auto;}
+  .row-actions{display:flex;align-items:center;gap:14px;margin-left:auto;flex:0 0 auto;}
+  .read-first-box{flex:0 0 auto;display:inline-flex;align-items:center;gap:3px;font-size:10.5px;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:4px 8px;white-space:nowrap;cursor:pointer;}
+  .read-first-box .chevron{margin:0;}
+  .like-label{font-size:11px;color:var(--muted);white-space:nowrap;}
+  .detail{padding:2px 4px 16px;font-size:12.5px;line-height:1.5;display:none;}
+  .detail.open{display:block;}
+  .detail p{margin:6px 0;}
+  .detail ul{margin:4px 0 8px;padding-left:18px;}
+  .detail li{margin:3px 0;}
+  .plabel{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-top:8px;}
+  .tension{background:var(--amberbg);color:var(--amber);border-radius:8px;padding:8px 10px;font-size:12px;margin-top:6px;}
+  .badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:8px;margin-right:6px;margin-bottom:6px;}
+  .tabbar{position:absolute;bottom:0;left:0;right:0;z-index:10;display:flex;background:#fbfaf7;border-top:1px solid var(--border);}
+  .tabbtn{flex:1;text-align:center;padding:10px 2px 14px;font-size:10.5px;color:var(--muted);background:none;border:none;cursor:pointer;}
+  .tabbtn.active{color:var(--text);font-weight:600;}
+  .tabicon{display:block;font-size:16px;margin-bottom:2px;}
+  .wrap{position:relative;flex:1 1 auto;overflow:hidden;}
+  .card{background:#faf9f6;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+  .navbtns{display:flex;gap:8px;margin-top:12px;}
+  .navbtns button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--border);background:#fff;font-size:12.5px;}
+  .navbtns button.primary{background:var(--text);color:#fff;border-color:var(--text);}
+  .switch{position:relative;width:38px;height:22px;background:var(--border);border-radius:11px;cursor:pointer;flex:0 0 auto;}
+  .switch.on{background:var(--green);}
+  .switch .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .15s;}
+  .switch.on .knob{left:18px;}
+  .homebox{border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;background:#faf9f6;cursor:pointer;}
+  .homebox .t{font-size:12.5px;font-weight:600;margin-bottom:6px;}
+  .homebox .d{font-size:10.5px;color:var(--muted);line-height:1.4;}
+  table.cmp{width:100%;border-collapse:collapse;font-size:11.5px;}
+  table.cmp th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--border-strong,var(--border));}
+  table.cmp td{padding:8px 4px;border-bottom:1px solid var(--border);vertical-align:top;}
+  table.cmp td:first-child{font-weight:500;}
+  .capsolism-note{vertical-align:middle;color:var(--muted);font-style:italic;text-align:left;font-size:9.5px;line-height:1.35;}
+  /* Curly-brace pointer beside (not above) the Capsolism note: a large "{" glyph,
+     stretched vertically, sitting to the left of the text and centered on it —
+     gestures at "these two rows bracket into one note" without claiming to touch
+     both row edges exactly (that would need JS-measured height, not attempted here). */
+  .capsolism-inner{display:flex;align-items:center;gap:5px;}
+  .capsolism-brace{flex:0 0 auto;font-size:2.6em;font-weight:400;font-style:normal;line-height:1;color:var(--muted);transform:scaleY(1.4);transform-origin:center;}
+  .capsolism-text{display:block;text-align:left;}
+  /* Real (not display:none) but visually negligible block after #vision-wrap — see
+     the trailing-sentinel comment near its markup for why this exists. */
+  .print-sentinel{height:1px;line-height:1px;font-size:1px;overflow:hidden;color:transparent;}
+  .agree{color:var(--green);}
+  .pending{color:var(--muted);}
+  .empty{font-size:12.5px;color:var(--muted);text-align:center;padding:30px 10px;}
+  .pc-line{font-size:12.5px;line-height:1.65;margin:0 0 8px;}
+  .pc-heading{font-size:13.5px;font-weight:700;color:var(--blue);margin:20px 0 10px;}
+  .author-note{background:var(--bluebg);border-radius:8px;padding:10px 12px;margin-top:8px;}
+  .author-note-heading{font-size:12px;font-weight:700;color:var(--blue);margin:0 0 6px;line-height:1.4;}
+  .author-note-intro{font-size:11px;font-style:italic;color:var(--muted);margin:0 0 6px;}
+  .author-note p{font-size:12.5px;line-height:1.55;margin:0;}
+  .vision-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-top:20px;}
+  .vision-toggle .t{font-size:12.5px;font-weight:600;color:var(--blue);}
+  /* Top-right info menu (Website / Privacy Policy / Support) — mirrors the native
+     app's AppInfoMenu toolbar item. Sits as a sibling of .wrap inside .phone so it
+     stays fixed in the same corner across all four tabs, since .screen elements
+     are absolutely positioned and swapped via showTab() rather than re-rendered. */
+  .info-menu{position:absolute;top:8px;right:8px;z-index:30;}
+  .info-menu summary{list-style:none;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--blue);border-radius:50%;}
+  .info-menu summary::-webkit-details-marker{display:none;}
+  .info-menu[open] summary{background:var(--bluebg);}
+  .info-menu-list{position:absolute;top:30px;right:0;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.14);padding:6px;min-width:150px;}
+  .info-menu-list a{display:block;padding:8px 10px;font-size:12px;color:var(--text);border-radius:6px;text-decoration:none;white-space:nowrap;}
+  .info-menu-list a:hover{background:var(--bluebg);}
+  .pillar-item{margin-bottom:12px;}
+  .pillars-link{font-size:10.5px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--blue);cursor:pointer;white-space:nowrap;}
+  /* Single source of truth per collapsible section: one "expanded" class on the
+     wrapper (#vision-wrap / #countries-wrap) governs both on-screen content
+     visibility (via the descendant rule below) and print visibility of the WHOLE
+     block, header included (see @media print). Previously the header and content
+     each carried their own separately-toggled class, which was two moving parts
+     that had to stay in sync on every toggle — a real risk if anything else ever
+     touched either element's classList independently, and hard to fully rule out
+     as the cause when a section that was visibly expanded on screen failed to
+     appear in a printed/PDF export. This collapses it to one flag, one place. */
+  #vision-section{display:none;margin-top:8px;}
+  #vision-wrap.expanded #vision-section{display:block;}
+  #vision-section p{font-size:12.5px;line-height:1.65;margin:0 0 10px;}
+  #vision-section p:last-child{margin-bottom:0;}
+  #countries-section{display:none;margin-top:8px;}
+  #countries-wrap.expanded #countries-section{display:block;}
+  #countries-section p{font-size:12.5px;line-height:1.6;margin:0 0 10px;}
+  #countries-section p:last-child{margin-bottom:0;}
+  /* Pillar label now sits inline at the start of its first paragraph (see
+     .author-note-heading-inline below) rather than as its own block-level heading
+     above it — matches the "How your liked choices relate to the 7 pillars" pattern
+     directly above this section (bold ism name + colon, same line as the text) for
+     visual consistency and less vertical space. Spacing between pillar blocks moves
+     from the old heading's margin-top onto the block wrapper itself. */
+  #countries-section .keep-with-heading,
+  #countries-section .force-new-page{margin-top:10px;}
+  #countries-section .keep-with-heading:first-child{margin-top:0;}
+  .author-note-heading-inline{color:var(--blue);font-weight:700;font-size:12px;}
+  /* Weld each pillar's heading to whatever comes right after it (its intro if it
+     has one, otherwise its first country entry) — page-break-after:avoid on the
+     heading alone proved unreliable (same failure mode as the "Strengths" heading
+     did before #build-prosbrief got a hard forced break), letting "Secular
+     humanism" and "Democratism Reimagined" land alone at a page bottom. */
+  .keep-with-heading{page-break-inside:avoid;break-inside:avoid;}
+  /* Democratism Reimagined's block (heading + intro + 3 countries + outro) is
+     forced onto its own fresh page rather than wrapped in page-break-inside:avoid
+     like the shorter pillar entries — a block this size marked "avoid" risked the
+     same failure that made its Estonia/Ireland/Hong Kong paragraphs render on
+     screen but go missing from the printed PDF. See renderCountryExamples(). */
+  .force-new-page{page-break-before:always;break-before:page;}
+  ::-webkit-scrollbar{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    .print-page, .print-page *{visibility:visible;}
+    .phone{display:contents;}
+    .wrap{display:contents;}
+    /* padding here used to compensate for the lack of an @page margin — now that
+       @page{margin:1in} (below) handles the page inset, this staying at 24px was
+       stacking an extra ~0.25in on top of it (plus body's own screen-only 24px/12px
+       centering padding), pushing the body text noticeably further in than the
+       stated 1in margin. Both zeroed out for print so the 1in @page margin is the
+       only inset actually applied. */
+    .print-page{position:static;width:100%;height:auto;overflow:visible;padding:0;}
+    body{padding:0;}
+    .statusbar{display:none;}
+    #screen-step-info > div:first-child{display:none;}
+    /* The author's-vision and country-examples blocks only appear in a printed
+       report if they were expanded on screen at the time of printing — a collapsed
+       wrapper (header, caption, and content together) is hidden entirely rather
+       than force-included. display:none here always wins over the visibility:visible
+       cascade above, regardless of expand state, so this is unconditional. */
+    #vision-wrap:not(.expanded), #countries-wrap:not(.expanded){display:none;}
+    .vision-toggle .chevron{display:none;}
+    .no-print{display:none !important;}
+    /* No app-mockup colour on a printed page — plain white paper. */
+    body, .print-page, .card{background:#fff !important;}
+    .card{border-color:#ccc;}
+    /* Keep paragraphs, table rows and cards intact across a page break instead of
+       splitting mid-sentence; repeat the table header if the table spans pages. */
+    p, li, tr, .card{page-break-inside:avoid;break-inside:avoid;}
+    /* Keep every heading-style element glued to whatever follows it — otherwise a
+       title (e.g. "For reference — the author's own vision") can land as the last
+       line on a page while its content starts fresh on the next one. Covers the
+       vision/countries toggle headers and the country-example sub-headings too,
+       not just the report's structural headings. */
+    h1, h2, .plabel, .pc-heading, .vision-toggle, .author-note-heading{page-break-after:avoid;break-after:avoid;}
+    /* page-break-after on a <td> (like .plabel above) isn't reliably honored by
+       browsers when deciding where to break a multi-page table — pagination
+       decisions happen at the <tr> level. tr.plabel-row targets the "Your other
+       choices, outside the author's model" header row directly, so it can't be
+       stranded alone at a page bottom while its first data row starts the next page. */
+    tr.plabel-row{page-break-after:avoid;break-after:avoid;}
+    /* Keep the whole comparison table on one page. page-break-inside:avoid directly
+       on a <table> is unreliable across browsers — tables have their own row-based
+       pagination algorithm and some engines simply ignore an avoid hint placed on
+       the table element itself. Wrapping it in a plain div and putting the hint on
+       that div instead uses ordinary block-level pagination, which is respected far
+       more consistently. This is a best-effort guarantee, not an absolute one — a
+       table with enough "other choices" rows to exceed a full page's height still
+       can't be honored, since there's no valid place left to put the break. */
+    #table-wrap{page-break-inside:avoid;break-inside:avoid;}
+    /* The comparison table is its own visual unit; the narrative synthesis that
+       follows (Strengths/Trade-offs/pillar-relation, then the country examples and
+       author's-vision sections) reads better starting clean on its own page rather
+       than being shoehorned onto whatever room is left under the table. Relying on
+       page-break-after:avoid alone on the first heading (.pc-heading, above) wasn't
+       reliable — it still let "Strengths your choices bring, per the book" land
+       alone at a page bottom with its content orphaned onto the next page. Forcing
+       the break here is a hard guarantee rather than a hint. */
+    #build-prosbrief{page-break-before:always;break-before:page;}
+    /* "Examples of where the author's model has worked" also starts on its own
+       fresh page rather than wherever the Strengths/Trade-offs/pillar-relation
+       content happens to end. Safe to apply unconditionally: if the section is
+       collapsed (not .expanded), #countries-wrap is display:none and simply isn't
+       rendered at all, so no break — and no blank page — occurs in that case. */
+    #countries-wrap{page-break-before:always;break-before:page;}
+    /* "For reference — the author's own vision" previously had no explicit break
+       before it — it just flowed naturally after "Examples of..." ended, only
+       getting pushed to a fresh page as a side effect of its own heading's
+       keep-together rule if there wasn't room. Every section that's reliably
+       survived print in this document has had an explicit forced break rather than
+       an implicit one, so this makes that consistent — worth trying since this
+       section is specifically the one still going missing from the final page. */
+    #vision-wrap{page-break-before:always;break-before:page;}
+    p{orphans:3;widows:3;}
+    thead{display:table-header-group;}
+
+    /* ACADEMIC PRINT TYPOGRAPHY (2026-07-19) — printed reports previously inherited
+       the phone-mockup's small UI sans-serif (system font) at screen-tuned px sizes
+       and loose screen line-heights, with no @page rule at all. That combination
+       produced text that read as oversized/loose rather than typeset, and made a
+       mid-sentence page break more likely: page-break-inside:avoid can only push a
+       paragraph to a fresh page if the whole paragraph fits within one page's
+       printable height, and taller screen-sized paragraphs made that harder to
+       satisfy. This block gives print its own serif, point-sized, tighter-leaded
+       typography plus a full 1in margin on all sides, independent of the screen
+       styles above (scoped via ".print-page X" selectors, which out-specificity the
+       unscoped screen rules without needing !important). Paper size is deliberately
+       left unset — no "size:" in the @page rule — so the printer driver/OS default
+       applies rather than forcing A4 or US Letter; text is left-aligned throughout
+       (the default; nothing overrides it to center or justify). */
+    @page{ margin: 1in; }
+    .print-page{ font-family: Georgia, "Times New Roman", Times, serif; font-size: 10pt; line-height: 1.45; }
+    .print-page h1{ font-size: 18pt; line-height: 1.25; }
+    .print-page .sub{ font-size: 9pt; line-height: 1.4; }
+    /* Section titles need to visibly outrank the bold inline lead-ins that follow
+       them (e.g. "Sweden — Nordic welfare capitalism:") rather than compete with
+       them at similar size/weight. A thin rule plus a navy accent (the same blue
+       already used for author-note-heading) does that job without resorting to
+       centering, which would break the left-aligned academic layout, or to the
+       all-caps treatment removed earlier. Asymmetric margin (more above than below)
+       signals the heading belongs to what follows it. */
+    .print-page .pc-heading{ font-size: 11.5pt; line-height: 1.3; color: var(--blue); border-bottom: 0.75pt solid var(--blue); padding-bottom: 4px; margin: 24px 0 10px; }
+    .print-page .vision-toggle{ margin: 24px 0 10px; padding-bottom: 4px; border-bottom: 0.75pt solid var(--blue); }
+    .print-page .vision-toggle .t{ color: var(--blue); }
+    .print-page .pc-line,
+    .print-page .author-note p,
+    .print-page #vision-section p,
+    .print-page .pillar-item,
+    .print-page .card{ font-size: 10pt; line-height: 1.45; }
+    .print-page .author-note-heading{ font-size: 10.5pt; line-height: 1.3; }
+    .print-page .author-note-heading-inline{ font-size: 10.5pt; }
+    .print-page table.cmp{ font-size: 9.5pt; }
+    .print-page .capsolism-note{ font-size: 7.5pt; }
+    .print-page table.cmp th{ font-size: 8.5pt; }
+    .print-page .plabel{ font-size: 8.5pt; }
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"></div>
+  <details class="info-menu">
+    <summary>&#8943;</summary>
+    <div class="info-menu-list">
+      <a href="index.html">Website</a>
+      <a href="privacy-policy.html">Privacy Policy</a>
+      <a href="support.html">Support</a>
+    </div>
+  </details>
+  <div class="wrap">
+
+    <!-- HOME -->
+    <div class="screen" id="screen-home" style="display:flex;flex-direction:column;justify-content:center;">
+      <div style="text-align:center;margin-bottom:10px;">
+        <svg width="185" height="185" viewBox="0 0 170 170">
+          <line x1="116" y1="116" x2="152" y2="152" stroke="#1c2a4a" stroke-width="15" stroke-linecap="round"/>
+          <path d="M75,75 L75,29 A46,46 0 0 1 110.96,46.32 Z" fill="#9b9b9b"/>
+          <path d="M75,75 L110.96,46.32 A46,46 0 0 1 119.85,85.24 Z" fill="#b9a8dc"/>
+          <path d="M75,75 L119.85,85.24 A46,46 0 0 1 94.96,116.45 Z" fill="#5b9fd6"/>
+          <path d="M75,75 L94.96,116.45 A46,46 0 0 1 55.04,116.45 Z" fill="#eb9a3c"/>
+          <path d="M75,75 L55.04,116.45 A46,46 0 0 1 30.15,85.24 Z" fill="#2f6b35"/>
+          <path d="M75,75 L30.15,85.24 A46,46 0 0 1 39.04,46.32 Z" fill="#8c2020"/>
+          <path d="M75,75 L39.04,46.32 A46,46 0 0 1 75,29 Z" fill="#5c2a63"/>
+          <circle cx="75" cy="75" r="52" fill="none" stroke="#1c2a4a" stroke-width="11"/>
+          <circle cx="75" cy="75" r="26" fill="#ffffff" stroke="#1c2a4a" stroke-width="3"/>
+          <text x="75" y="72" text-anchor="middle" font-size="7.5" font-weight="700" fill="#1c2a4a" font-family="Georgia,serif">WORLD</text>
+          <text x="75" y="81" text-anchor="middle" font-size="7.5" font-weight="700" fill="#1c2a4a" font-family="Georgia,serif">VIEW</text>
+        </svg>
+      </div>
+
+      <div style="text-align:center;font-family:Georgia,'Times New Roman',serif;color:var(--text);font-size:12.5px;line-height:1.5;">
+        An interactive method to develop your personal worldview<br>
+        The methodology is based on the book:
+      </div>
+      <div style="text-align:center;font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:700;color:var(--text);margin:4px 0 2px;">A Critique of Isms</div>
+      <div style="text-align:center;font-family:Georgia,'Times New Roman',serif;font-size:12.5px;color:var(--text);">by Gordon Anton<span style="font-size:9.5px;">, B.A., M.A.</span></div>
+      <div style="text-align:center;margin-bottom:14px;">
+        <a href="index.html" style="font-family:Georgia,'Times New Roman',serif;font-size:11px;color:var(--blue);">Visit the website &#8250;</a>
+      </div>
+
+      <h1 style="text-align:center;font-size:22px;margin-bottom:12px;">Worldview Builder</h1>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        <div class="homebox" onclick="showTab('enc')" style="background:#5b9fd6;border-color:#5b9fd6;">
+          <div class="t" style="color:#ffffff;">Ism encyclopedia</div>
+          <div style="font-size:9.5px;color:rgba(255,255,255,0.85);">Tap to open &#8594;</div>
+        </div>
+        <div class="homebox" onclick="showTab('world')" style="background:#2f6b35;border-color:#2f6b35;">
+          <div class="t" style="color:#ffffff;">Your custom set of ISM choices</div>
+          <div style="font-size:9.5px;color:rgba(255,255,255,0.85);">Tap to open &#8594;</div>
+        </div>
+        <div class="homebox" onclick="showTab('build')" style="background:#5c2a63;border-color:#5c2a63;">
+          <div class="t" style="color:#ffffff;">A Vision for the World You Want</div>
+          <div style="font-size:9.5px;color:rgba(255,255,255,0.85);">Tap to open &#8594;</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;margin-bottom:12px;">
+        <div onclick="openStepInfo(1)" style="cursor:pointer;background:#faf8f2;border:0.5px solid var(--border);border-left:4px solid #5b9fd6;border-radius:8px;padding:8px 8px 8px 10px;">
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:10.5px;color:var(--text);line-height:1.5;">Step 1 - Browse isms and choose the ones you like.</div>
+          <div style="font-size:9.5px;color:var(--muted);margin-top:4px;">Tap for more &#8594;</div>
+        </div>
+        <div onclick="openStepInfo(2)" style="cursor:pointer;background:#faf8f2;border:0.5px solid var(--border);border-left:4px solid #2f6b35;border-radius:8px;padding:8px 8px 8px 10px;">
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:10.5px;color:var(--text);line-height:1.5;">Step 2 - Your choices become your worldview.</div>
+          <div style="font-size:9.5px;color:var(--muted);margin-top:4px;">Tap for more &#8594;</div>
+        </div>
+        <div onclick="openStepInfo(3)" style="cursor:pointer;background:#faf8f2;border:0.5px solid var(--border);border-left:4px solid #5c2a63;border-radius:8px;padding:8px 8px 8px 10px;">
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:10.5px;color:var(--text);line-height:1.5;">Step 3 - Your choices build a governance vision.</div>
+          <div style="font-size:9.5px;color:var(--muted);margin-top:4px;">Tap for more &#8594;</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;">
+        <div onclick="openWorldviewInfo()" style="display:inline-block;background:#8c2020;color:#ffffff;border-radius:12px;padding:14px 20px;cursor:pointer;font-family:Georgia,'Times New Roman',serif;font-size:12.5px;font-weight:700;line-height:1.4;max-width:260px;">
+          What is a worldview and what relevance does it have for you?
+          <div style="margin-top:6px;font-size:11px;font-weight:400;">Tap to find out &#8594;</div>
+        </div>
+        <div onclick="openVisionInfo()" style="display:inline-block;background:#5c2a63;color:#ffffff;border-radius:12px;padding:11px 18px;cursor:pointer;font-family:Georgia,'Times New Roman',serif;font-size:11.5px;font-weight:700;line-height:1.4;max-width:240px;margin-top:8px;">
+          What is the author's vision for a better world?
+          <div style="margin-top:5px;font-size:10.5px;font-weight:400;">Tap to find out &#8594;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORLDVIEW INFO (opened from the home page button, not a bottom tab) -->
+    <div class="screen" id="screen-worldview-info" style="display:none;">
+      <div onclick="closeWorldviewInfo()" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--text);font-size:13px;margin-bottom:16px;">
+        <span style="font-size:16px;">&#8249;</span> Back
+      </div>
+      <h1 style="margin-bottom:12px;font-weight:700;">What is a worldview?</h1>
+      <div style="font-family:Georgia,'Times New Roman',serif;font-size:12.5px;line-height:1.7;color:var(--text);">
+        <p style="margin:0 0 12px;">A worldview is built from the beliefs you hold about how the world works and should be governed — beliefs that already have names and long histories behind them, known as isms. Isms also typically cover your values, spiritual choices and approach to finding truth about life. You may not think of your own views this way, but they almost always trace back to isms already studied and written about extensively.</p>
+        <p style="margin:0 0 12px;">This app draws on 47 of the most widely known isms — not the complete list that exists, but the ones most people have encountered, each with a direct or indirect bearing on governance or the control of people. The isms you personally endorse make up your worldview. Naming them gives you a clearer picture of how you see life, your community, and your government, whether or not you think of yourself as politically or spiritually engaged.</p>
+        <p style="margin:0;">Building it is automatic: select the isms you agree with in the Encyclopedia (Step 1), and they populate your Worldview list (Step 2). Step 3 then adds relevant narrative from the book <em>A Critique of Isms</em> — pros, cons, and further commentary from the author — producing a customized worldview you can print or share.</p>
+      </div>
+    </div>
+
+    <!-- AUTHOR'S VISION (opened from the home page button, not a bottom tab) -->
+    <div class="screen" id="screen-vision-info" style="display:none;">
+      <div onclick="closeVisionInfo()" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--text);font-size:13px;margin-bottom:16px;">
+        <span style="font-size:16px;">&#8249;</span> Back
+      </div>
+      <h1 style="margin-bottom:12px;font-weight:700;">The Author's Vision</h1>
+      <div style="font-family:Georgia,'Times New Roman',serif;font-size:12.5px;line-height:1.7;color:var(--text);">
+        <p style="margin:0 0 12px;">This isn't a blueprint — it's a vision, and an honest one, because the ideas it rests on don't naturally get along. Throughout history, socialists and capitalists, feminists and traditionalists, environmentalists and growth-driven markets have been in genuine tension. What I'm proposing isn't that one of these wins, but that seven of them hold each other in check at the same time.</p>
+        <p style="margin:0 0 12px;">I call these the 7 pillars: Secular Humanism, Scientism, Capitalism and Socialism paired together as &ldquo;Capsolism,&rdquo; Environmentalism, Feminism, Liberalism, and a Reimagined Democracy. Secular Humanism is the foundation — a commitment to human dignity and welfare that every other pillar must answer to. Scientism means decisions guided by evidence, not ideology or mysticism. Capsolism lets markets drive innovation while regulation and a strong welfare state keep profit from coming at the cost of workers, communities, or the planet. Environmentalism keeps all of it inside hard ecological limits. Feminism means equity built into institutions from the start, not added later. Liberalism protects individual rights and constitutional limits on power. And a Reimagined Democracy — one built for an era of misinformation and demagogues — is the mechanism that makes the other six accountable to the people they're meant to serve.</p>
+        <p style="margin:0;">Remove any one pillar and the others start to fail: capitalism without environmentalism pushes growth past safe limits; democracy without feminism reproduces old hierarchies; science without humanism reduces people to data points. None of this guarantees a better world. But it's the closest thing to a stable foundation history has offered so far — and it's worth the attempt.</p>
+      </div>
+    </div>
+
+    <!-- 7 PILLARS QUICK REFERENCE (opened via "Review 7 Pillars" link in Step 3, returns to Builder) -->
+    <div class="screen" id="screen-pillars-info" style="display:none;">
+      <div onclick="closePillarsInfo()" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--text);font-size:13px;margin-bottom:16px;">
+        <span style="font-size:16px;">&#8249;</span> Back
+      </div>
+      <h1 style="margin-bottom:4px;font-weight:700;">The 7 Pillars</h1>
+      <p class="sub" style="margin-bottom:14px;">A quick reference — see "The Author's Vision" on Home for the fuller argument.</p>
+      <div style="font-family:Georgia,'Times New Roman',serif;font-size:12.5px;line-height:1.55;color:var(--text);">
+        <div class="pillar-item"><strong>1. Secular Humanism</strong> — The foundation. A commitment to human dignity, welfare, and reason, free of religious doctrine, that every other pillar must answer to.</div>
+        <div class="pillar-item"><strong>2. Scientism</strong> — Decisions guided by evidence and the scientific method, not ideology, mysticism, or guesswork.</div>
+        <div class="pillar-item"><strong>3. Capitalism &amp; Socialism (&ldquo;Capsolism&rdquo;)</strong> — Markets drive innovation and growth, but regulation and a strong welfare state keep profit from coming at the cost of workers, communities, or the planet.</div>
+        <div class="pillar-item"><strong>4. Environmentalism</strong> — Growth and prosperity operate within hard ecological limits, not despite them.</div>
+        <div class="pillar-item"><strong>5. Feminism</strong> — Gender equity built into every institution from the start, not added afterward.</div>
+        <div class="pillar-item"><strong>6. Liberalism</strong> — Individual rights and constitutional limits on power, protecting people from the excesses of both markets and the state.</div>
+        <div class="pillar-item" style="margin-bottom:0;"><strong>7. Reimagined Democracy</strong> — A voting and governance system redesigned for an era of misinformation and demagogues, holding the other six pillars accountable to the people they serve.</div>
+      </div>
+    </div>
+
+    <!-- STEP INFO (opened from the 3 step boxes on the home page, not a bottom tab) -->
+    <div class="screen print-page" id="screen-step-info" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div onclick="closeStepInfo()" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--text);font-size:13px;">
+          <span style="font-size:16px;">&#8249;</span> Back
+        </div>
+        <div id="step-info-print" class="no-print" onclick="printStepInfo()" style="display:none;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:8px;background:#1c2a4a;cursor:pointer;color:#ffffff;font-size:12px;font-weight:600;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9V2h12v7"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Print
+        </div>
+      </div>
+      <h1 id="step-info-title" style="margin-bottom:12px;"></h1>
+      <div id="step-info-text" style="font-family:Georgia,'Times New Roman',serif;font-size:12.5px;line-height:1.7;color:var(--text);"></div>
+    </div>
+
+    <!-- ENCYCLOPEDIA -->
+    <div class="screen" id="screen-enc" style="display:none;">
+      <h1>Encyclopedia</h1>
+      <p class="sub" id="enc-count"></p>
+      <div class="author-note" style="margin-bottom:12px;">
+        <p class="author-note-intro" style="margin:0;">Every ism in this encyclopedia influences, directly or indirectly and either positively or negatively, the 7 pillars of the author's model for a better world. Each entry below explains how.</p>
+      </div>
+      <input type="text" id="enc-search" placeholder="Search isms">
+      <div class="chips" id="enc-chips"></div>
+      <div id="enc-list"></div>
+    </div>
+
+    <!-- WORLDVIEW -->
+    <div class="screen" id="screen-world" style="display:none;">
+      <h1>Your Worldview</h1>
+      <p class="sub" id="world-count"></p>
+      <div id="world-list"></div>
+    </div>
+
+    <!-- BUILDER -->
+    <div class="screen print-page" id="screen-build" style="display:none;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <h1 style="margin:0;">A Vision for the World You Want</h1>
+        <div id="build-print" class="no-print" onclick="printBuilder()" style="display:flex;flex:0 0 auto;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:8px;background:#1c2a4a;cursor:pointer;color:#ffffff;font-size:12px;font-weight:600;white-space:nowrap;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9V2h12v7"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Print
+        </div>
+      </div>
+      <p class="sub">Your liked isms, compared with the author's own model</p>
+      <div id="build-summary"></div>
+      <div id="table-wrap">
+        <table class="cmp">
+          <thead><tr><th>Component</th><th>Your choice</th><th>Author's model</th><th></th></tr></thead>
+          <tbody id="build-table"></tbody>
+        </table>
+      </div>
+
+      <div id="build-prosbrief"></div>
+
+      <!-- Country examples supporting the author's own pillar model (2026-07-19) —
+           Builder report only, one example per pillar, positive examples for the 7
+           pillars only, no negative examples for isms outside the model. Sits beside
+           "For reference" (both are author's-case content, and belong after the
+           user's own personalized results, not before). Reimagined Democracy is the
+           exception: it carries 3 named components rather than 1, since no single
+           country implements the pillar and the point is exactly that the pieces
+           haven't coalesced — see its countryExamplesIntro/Outro fields. -->
+      <div id="countries-wrap">
+        <div class="vision-toggle" id="countries-toggle-header" onclick="toggleCountriesSection()">
+          <span class="t">Examples of where the author's model has worked</span>
+          <span class="chevron" id="countries-chev">&#8250;</span>
+        </div>
+        <p class="sub no-print" style="margin:2px 0 0;font-size:10px;">Expand to include this in your printed report — collapsed sections aren't printed.</p>
+        <div class="author-note" id="countries-section"></div>
+      </div>
+
+      <div id="vision-wrap">
+        <div class="vision-toggle" id="vision-toggle-header" onclick="toggleVisionSection()">
+          <span class="t">For reference — the author's own vision</span>
+          <span class="chevron" id="vision-chev">&#8250;</span>
+        </div>
+        <p class="sub no-print" style="margin:2px 0 0;font-size:10px;">Expand to include this in your printed report — collapsed sections aren't printed.</p>
+        <div class="author-note" id="vision-section">
+          <p>This isn't a blueprint — it's a vision, and an honest one, because the ideas it rests on don't naturally get along. Throughout history, socialists and capitalists, feminists and traditionalists, environmentalists and growth-driven markets have been in genuine tension. What I'm proposing isn't that one of these wins, but that seven of them hold each other in check at the same time.</p>
+          <p>I call these the 7 pillars: Secular Humanism, Scientism, Capitalism and Socialism paired together as &ldquo;Capsolism,&rdquo; Environmentalism, Feminism, Liberalism, and a Reimagined Democracy. Secular Humanism is the foundation — a commitment to human dignity and welfare that every other pillar must answer to. Scientism means decisions guided by evidence, not ideology or mysticism. Capsolism lets markets drive innovation while regulation and a strong welfare state keep profit from coming at the cost of workers, communities, or the planet. Environmentalism keeps all of it inside hard ecological limits. Feminism means equity built into institutions from the start, not added later. Liberalism protects individual rights and constitutional limits on power. And a Reimagined Democracy — one built for an era of misinformation and demagogues — is the mechanism that makes the other six accountable to the people they're meant to serve.</p>
+          <p>Remove any one pillar and the others start to fail: capitalism without environmentalism pushes growth past safe limits; democracy without feminism reproduces old hierarchies; science without humanism reduces people to data points. None of this guarantees a better world. But it's the closest thing to a stable foundation history has offered so far — and it's worth the attempt.</p>
+        </div>
+      </div>
+      <!-- Trailing sentinel (2026-07-19): #vision-wrap is the last child of this
+           screen and carries a forced page-break-before — a known cross-engine print
+           edge case is that a forced break on the very last element in a print flow
+           can fail to render, since there's nothing after it for the pagination pass
+           to "finish onto." This gives it something to finish onto. Tested against
+           an identical last-page-missing symptom in both Safari and Comet. -->
+      <div class="print-sentinel">&nbsp;</div>
+    </div>
+
+  </div>
+
+  <div class="tabbar">
+    <button class="tabbtn active" id="tab-home" onclick="showTab('home')"><span class="tabicon">&#8962;</span>Home</button>
+    <button class="tabbtn" id="tab-enc" onclick="showTab('enc')"><span class="tabicon">&#9776;</span>Encyclopedia</button>
+    <button class="tabbtn" id="tab-world" onclick="showTab('world')"><span class="tabicon">&#9673;</span>Worldview</button>
+    <button class="tabbtn" id="tab-build" onclick="showTab('build')"><span class="tabicon">&#9881;</span>Builder</button>
+  </div>
+</div>
+
+<script>
+// classification: Political | Religious | Philosophical | Economic | Personal-ethical | Governance-framework
+// builderRole: pillar | religious-governance | restraint | not-applicable
+// no author verdict is shown to the user — pros/cons/tension only, plus a liked toggle
+const ISMS = [
+{id:"altruism",name:"Altruism",classification:"Personal-ethical",builderRole:"not-applicable",liked:false,
+  belief:"Acting for others' welfare without expecting reward.",
+  pros:["Encourages people to act for others' welfare without expecting anything back — a real human strength."],
+  cons:["Taken to an extreme, unconditional self-sacrifice can be exploited by those less scrupulous."],
+  tension:"Easy to admire as a personal virtue, but it doesn't by itself tell you how to organize a state.",
+  pillarNotes:"Altruism is relevant and integral to 6 of the 7 pillars of building a better world. It implies thinking beyond personal, selfish needs, and is therefore strongly aligned with Secular Humanism, Socialism, Environmentalism, Feminism, Liberalism, and Democratism Reimagined. One cannot fully embrace any of these six pillars without some degree of altruistic thinking.",
+},
+{id:"anglicanism",name:"Anglicanism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"Protestant Christian tradition originating with the Church of England.",
+  pros:["Gave England a national church that didn't answer to a foreign pope."],
+  cons:["Like other state churches, fused religious authority with political power for centuries."],
+  tension:"Weigh whether a national church still shaping law counts as religious governance today.",
+  pillarNotes:"As with most all religious denominations, Anglicism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction. If one chooses to follow a denominational sect it can be personally rewarding and benign to the the 7 pillar model, provided it remains strictly personal in nature. It does, however, leave open the possibility of members over time wanting more direct input into governance; and when it does, it seriously undermines the 7 pillar model of a better world vision. For example religion has been historically antithetical to science and secularism both of which are absolute foundational to the vision.",
+},
+{id:"atheism",name:"Atheism",classification:"Philosophical",builderRole:"sub-pillar",parentPillar:"humanism",liked:false,
+  belief:"The absence of belief in a god.",
+  pros:["Requires no unfalsifiable claims to defend — the book calls it sustainable for exactly this reason."],
+  cons:["Offers no positive moral framework on its own, only an absence of belief."],
+  tension:"The book counts this as sustainable, but folds it into Secular humanism rather than giving it its own pillar.",
+  pillarNotes:"Atheism is on the rise around the world in many countries. It has nothing to offer governance as such but at the very least diminishes the mystical inclinations for theocratic control; and, it therefore supports Secular Humanism.",
+},
+{id:"buddhism",name:"Buddhism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"Philosophy and religion centered on suffering, impermanence, and the Middle Way.",
+  pros:["Its harmony-with-nature themes echo humanist and environmentalist values.","Never evolved into a full system of national governance, unlike more overtly politically oriented Religious isms."],
+  cons:[],
+  tension:"Personal philosophy versus state doctrine — where should the line sit?",
+  pillarNotes:"As with most all religious denominations, Buddhism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction. If one chooses to follow a denominational sect it can be personally rewarding and benign to the the 7 pillar model, provided it remains strictly personal in nature. It does, however, leave open the possibility of members over time wanting more direct input into governance; and when it does, it seriously undermines the 7 pillar model of a better world vision. For example, most religions have been historically antithetical to science and secularism both of which are absolute foundational to the vision. \n\nBuddhism differs from Western religions in that Buddha was not a god, he was a teacher. In this sense his thinking was very much aligned with humanist principles. However, many, if not most, people who actually practice the religion in fact pray to Buddha as if he were a god who intervenes in the affairs of man. Therefore the practice of Buddhism very much deviates from the theory. It should also be noted that most Buddhists have adopted gods from Hinduism in their religious practice because of centuries of historical connections between the two religions. In this latter sense, Buddhism does not fit within the humanist family. So we are left with a mixed relevance to secular humanism and the 7 pillar vision",
+},
+{id:"capitalism",name:"Capitalism",classification:"Economic",builderRole:"pillar",liked:false,
+  belief:"Unfettered private enterprise, trade and commerce set the optimal practices and boundaries of freedom and prosperity.",
+  pros:["Combined with globalization, drove the greatest reduction in extreme poverty in history — the book rates it 'needs reform,' not failed."],
+  cons:["The book says it 'failed to encompass the destructive forces of greed and monopoly power' — the top 1% possess more wealth than the remaining 99%, which it calls unsustainable without regulation and fairer tax systems."],
+  tension:"The book's caveat: capitalism cannot work on its own — it needs socialism's guardrails to offset its excesses. The author proposes the two together, never one without the other.",
+  pillarNotes:"The author contends that capitalism cannot survive indefinitely without Modern Socialism. Either one, unconstrained by the other, is a recipe for disaster in the long term — thus the coined term \"Capsolism.\"",
+  // Country examples supporting the author's own pillar model, Builder-report only —
+  // see Isms_App_Spec.md Section 3.4 for the design rationale (one example per pillar,
+  // positive examples for the 7 pillars only, no negative examples for other isms).
+  countryExamples:[
+    {country:"Sweden", label:"Nordic welfare capitalism", note:"Free markets and open trade coexist with near-universal healthcare, tuition-free higher education, and one of the world's most redistributive tax-and-transfer systems. After a severe banking crisis in the early 1990s, Sweden liberalized significantly without abandoning its welfare core — often cited as evidence the model can adapt under real strain rather than only holding up in good times."}
+  ],
+},
+{id:"catholicism",name:"Catholicism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"The largest Christian denomination, historically centered on Rome.",
+  pros:["Built vast networks of hospitals, schools, and charity that materially helped millions."],
+  cons:["The book points to the Middle Ages and Christian Europe, where the Spanish Inquisitions and the Crusades killed millions over competing claims to holy sites and the premise that 'my god is more sacred than yours' — religious disagreement as a direct cause of war.",
+        "The killing of Aboriginal children in Catholic-run residential schools is cited as a modern instance of the same pattern: religious authority turning to fear and abuse."],
+  tension:"Same institution, both outcomes — how much weight should its governance role carry today?",
+  pillarNotes:"As with most all religious denominations, Catholicism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction. Catholicism in Europe has been one of the worst examples of this historically. If one chooses to follow a denominational sect it can be rewarding and benign to the the 7 pillar model, provided it remains strictly personal in nature. It does, however, leave open the possibility of members over time wanting more direct input into governance; and when it does, it seriously undermines the 7 pillar model of a better world vision. For example, most religions have been historically antithetical to science and secularism both of which are absolute foundational to the vision. The history of Europe again is littered with examples of Catholicism standing in the way of social progress prior to the age of enlightenment.",
+},
+{id:"colonialism",name:"Colonialism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Expansion and control of foreign territories for the colonizer's enrichment.",
+  pros:["Its defenders point to infrastructure, trade networks, and administrative systems it spread."],
+  cons:["Estimated to have killed roughly 100 million people in British India alone."],
+  tension:"Its defenders and its victims tell almost opposite histories of the same events.",
+  pillarNotes:"The world has moved beyond the idea of colonialism although there are vestiges of it still in many countries as a left over from the colonial era. In other words, mostly white Europeans are still benefitting from the remnants of colonial conquer in ways economic, political and otherwise. But their is absolutely no moral bases for this continuity in the author’s vision albeit it takes time for the long term impacts to recede into oblivion. Entire civilizations were wiped out to justify a thing called “Manifest Destiny”, a creed of lies co-developed by Royalty and the Catholic Church in Europe to justify an abhorrent idealism.",
+},
+{id:"communism",name:"Communism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Collective ownership of the means of production, abolishing class distinction.",
+  pros:["Aimed to abolish class distinction and share the means of production for collective benefit."],
+  cons:["In practice, disincentivized competition and contributed to famine and mass suppression."],
+  tension:"The book separates Marx's theory from how Lenin and Stalin implemented it — which are you judging?",
+  pillarNotes:"Notwithstanding that communism anywhere in the world never materialized as Marx or Lenin might have wished, the real impact on most countries (Russia, Cuba, China, Korea) was devastating and mostly destructive.  Of course China today is doing exceedingly well in many areas of governance but this has little to do with “communism” in its purest sense. China is in fact a hybrid of communism, capitalism and socialism so it defies easy categorization. It is “Communist mostly in name. It is worth considering the merits of their system but the communism of Mao absolutely has no place within the 7 pillars of a better world.",
+},
+{id:"environmentalism",name:"Environmentalism",classification:"Philosophical",builderRole:"pillar",liked:false,
+  belief:"Prioritizing ecological limits and stewardship of the planet in policy and behavior.",
+  pros:["The book says it is 'coming of age' and needs far more political weight as a governing priority."],
+  cons:["Strict ecological limits can slow the economic growth that lifted billions out of poverty."],
+  tension:"Growth against planetary limits — the book doesn't pretend this trade-off is easy.",
+  pillarNotes:"There is no longer any question, humans are destroying the planet we live on. None of the other objectives of the 7 pillar model will matter if we do not have a sustainable planet for future generations.",
+  countryExamples:[
+    {country:"Costa Rica", label:"Reversing the damage, not just slowing it", note:"The first tropical country to reverse deforestation, recovering forest cover from roughly a third of the country in the 1980s to nearly 60% today through a Payment for Ecosystem Services program that pays landowners directly to conserve and replant, alongside electricity generation that's run above 95% renewable for over a decade."}
+  ],
+},
+{id:"fanaticism",name:"Fanaticism",classification:"Personal-ethical",builderRole:"restraint",liked:false,
+  belief:"Extreme, unquestioning devotion to a belief that overrides reason.",
+  pros:["Can produce intense loyalty and mobilization behind a cause, for better or worse."],
+  cons:["Overrides reason and has fueled violence across nearly every ideology, not only religion."],
+  tension:"Not a governance system itself — more a risk factor any model needs a safeguard against.",
+  pillarNotes:"Fanaticism is a destructive anchor on anything it consumes. Humans cannot work together without compromise and they cannot survive without adopting reason and science as guiding forces. Fanaticism is often used as a strategy when other things don’t work. Even where it has been successful overturning governments, the new group self destructs because extreme view and actions typically fail sooner than later.",
+},
+{id:"fascism",name:"Fascism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Authoritarian ultranationalism under a single leader, suppressing dissent and individual rights.",
+  pros:["Promised order, national unity, and decisive leadership during crisis and instability."],
+  cons:["Suppressed dissent and individual rights, historically escalating to atrocity."],
+  tension:"The appeal of order versus the cost of who gets crushed to enforce it.",
+  pillarNotes:"We need look no further than Nazi Germany, Italy under Mussolini and Franco’s Spain to see the ugly racism, brutality and genocidal tendencies that emerge from such thinking. There are absolutely no redeeming components within this malignancy.",
+},
+{id:"feminism",name:"Feminism",classification:"Philosophical",builderRole:"pillar",liked:false,
+  belief:"Equality of rights, opportunity, and voice for women in society and governance.",
+  pros:["The book calls it 'long overdue' — correcting an oppression it says devastated the world."],
+  cons:["Implementation questions (quotas, representation, pace of change) remain contested even among supporters."],
+  tension:"Broad agreement on the goal, real disagreement on the mechanism.",
+  pillarNotes:"Throughout history women have been marginalized. This has been first and foremost an absolute travesty in terms of the idea of human rights and the idea of equality before the law. Equally important is the fact that the combined intelligence of more than 4 billion women on the planet in 2026 brings a wealth of energy, creativity, and perspective in every field of endeavour. Women must be an integral part of any model for a better world.",
+  countryExamples:[
+    {country:"Iceland", label:"Closed further than anywhere else", note:"Ranked #1 in the World Economic Forum's Global Gender Gap Index for 16 consecutive years, the only economy to have closed over 90% of its overall gender gap — a sustained, multi-decade result across political, economic, and educational measures at once, not one policy in isolation."}
+  ],
+},
+{id:"gnosticism",name:"Gnosticism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"Early Christian sects holding esoteric, often anti-institutional beliefs about Jesus and the divine.",
+  pros:["Offered alternative readings of early Christian texts and the nature of the divine."],
+  cons:["Excluded from the Bible at the Council of Nicaea — a political selection, the book argues, not settled truth."],
+  tension:"If 'orthodox' belief was a political choice, how much should inherited doctrine govern law today?",
+  pillarNotes:"Gnosticism is a footnote in the story of Christianity. It does support the idea that the origins of the Bible were primarily political in nature; and therefore raises serious questions about the Bible’s contents being the word of god.",
+},
+{id:"hinduism",name:"Hinduism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"A family of Indian religious traditions built around dharma, karma, and a pantheon of deities.",
+  pros:["One of the world's oldest continuous religious traditions, rich in philosophical and ethical texts."],
+  cons:["Historically entangled with social stratification used to justify political control."],
+  tension:"Ancient wisdom traditions versus the social hierarchies sometimes built on top of them.",
+  pillarNotes:"Hinduism is full of ancient creed and story telling with no grip on reality. It can be a solace to to countless millions but does nothing to support the pillars of a better world. As with all religions there are some positive moral lessons to be gained, but it also reinforces the age old idea that “my religion is better than yours” and therefore, either directly or indirectly promotes intolerance resulting in inter faith conflict and wars - I.e. Islam and Hinduism have been feuding for centuries.",
+},
+{id:"humanism",name:"Secular humanism",classification:"Philosophical",builderRole:"pillar",liked:false,
+  belief:"Human-centered ethics and reason without requiring religious belief.",
+  pros:["Named 'the foundation' among all surviving isms in the book's own architecture."],
+  cons:["Asks people to source morality from reason alone, which some find less motivating than divine command."],
+  tension:"If humanism is the foundation, how much should it override traditions people still find meaningful?",
+  pillarNotes:"Secular Humanism is named the foundation for a reason — every other pillar in this model, from Scientism's confidence in evidence to Feminism's insistence on equal worth, ultimately traces back to the premise that human beings matter and deserve reasoned, dignified treatment without needing a religious justification to earn it. It asks more of people than divine command does, since there's no promised afterlife enforcing good behavior, but that is also its strength: a morality that has to be reasoned and chosen is one a diverse, pluralistic world can actually share.",
+  countryExamples:[
+    {country:"Uruguay", label:"The secular republic", note:"Church and state were formally separated in 1918, following decades of earlier secularizing reform — civil marriage, legalized divorce, nationalized church cemeteries. That secular foundation didn't stay abstract: it later produced legal abortion, marriage equality, and one of Latin America's strongest human-rights records, secular governance and expanded human welfare advancing together rather than in tension."}
+  ],
+},
+{id:"imperialism",name:"Imperialism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Extending a state's power over other peoples and territories through direct or indirect control.",
+  pros:["Its architects argued it spread governance, infrastructure, and trade to less powerful regions."],
+  cons:["Driven by 'the will to dominate' — responsible for mass death and exploitation."],
+  tension:"Whose infrastructure gains outweigh whose lost sovereignty and lives?",
+  pillarNotes:"Imperialism was a way of expanding control over people and resources more indirectly than colonialism. It contributed greatly to the wealth of certain nations but conversely exploited millions of natives through slave labor, and theft of resources. It defies everything held dear in a secular humanist world and has no regard for environmental concern.",
+},
+{id:"islamism",name:"Islamism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"Political ideology asserting Islamic law should govern the state.",
+  pros:["Offers a comprehensive legal and moral order rooted in shared faith for its adherents."],
+  cons:["Apostasy killings and 9/11 are cited as evidence of religion turning to violence when fused with state power."],
+  tension:"A comprehensive moral order for believers — but what happens to those who dissent or don't believe?",
+  pillarNotes:"As with most all religious denominations, Islamism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction. Islamism in the Middle East has been one of the worst examples of this historically. If one chooses to follow a denominational sect it can be rewarding and benign to the the 7 pillar model, provided it remains strictly personal in nature. It does, however, leave open the possibility of members over time wanting more direct input into governance; and when it does, it seriously undermines the 7 pillar model of a better world vision. For example, most religions have been historically antithetical to science and secularism both of which are absolute foundational to the vision. The history of the world is littered with examples of Islam standing in the way of social progress prior to the age of enlightenment. Moreover, in recent centuries Islam has been a breeding ground for violence and war.",
+},
+{id:"judaism",name:"Judaism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"The religion and cultural identity of the Jewish people, rooted in the Torah.",
+  pros:["One of the oldest continuous religious and cultural traditions, with a deep legal and ethical tradition."],
+  cons:["Discussed mainly through its modern entanglement with politics, e.g. Zionism."],
+  tension:"Religious and national identity became fused in the 20th century — untangling them is part of the conflict.",
+  pillarNotes:"As with most all religious denominations, Judaism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction. Judaism in Israel today is not a system where there is great separation between church and state. Perhaps because of centuries of persecution in Europe there is a aggressive counter culture of “never again ‘ that is becoming oppressive to Palestinian people in the same way aggression was foisted on Jews in past European conflicts. This ism like most all religions does not contribute much to secular humanism.",
+},
+{id:"liberalism",name:"Liberalism",classification:"Philosophical",builderRole:"pillar",liked:false,
+  belief:"Reason, individual rights, and human-centered ethics as the basis for governance.",
+  pros:["Called 'fully compatible' with secular humanism — reason, rights, human-centered ethics."],
+  cons:["Prioritizing individual rights can clash with collective or communal claims some cultures value more."],
+  tension:"Individual freedom versus collective belonging — liberalism picks a side.",
+  pillarNotes:"Liberalism supplies the political machinery that turns secular humanist values into actual rights and protections — free speech, due process, and the individual's standing against arbitrary power. Without it, humanism remains a philosophy rather than a system of government; liberalism is what makes the other six pillars enforceable rather than merely aspirational. Its tension with collective claims is real, but a better world still needs a baseline of individual protection that no collective, however well-intentioned, should be able to override.",
+  countryExamples:[
+    {country:"Canada", label:"Rights that outrank the legislature", note:"The 1982 Charter of Rights and Freedoms entrenched individual liberties and minority protections directly into the constitution, ranking above ordinary legislation, so no simple parliamentary majority can override them — Locke's core liberal premise operating as living law, not just founding-era rhetoric."}
+  ],
+},
+{id:"lutheranism",name:"Lutheranism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"Protestant tradition founded on Martin Luther's break from the Catholic Church.",
+  pros:["Broke from Rome to make scripture and worship more directly accessible to ordinary believers."],
+  cons:["Grouped by the book with other state-linked Christian denominations historically fused to political power."],
+  tension:"Reform from within a religion versus the state power that reform inherited.",
+  pillarNotes:"As with most all religious denominations, Lutheranism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction. Lutheranism's own history of state-established churches in Germany and Scandinavia is a reminder that even a reforming faith can calcify into political power. If one chooses to follow a denominational sect it can be personally rewarding and benign to the 7 pillar model, provided it remains strictly personal in nature. It does, however, leave open the possibility of members over time wanting more direct input into governance; and when it does, it seriously undermines the 7 pillar model of a better world vision. For example, most religions have been historically antithetical to science and secularism, both of which are absolutely foundational to the vision.",
+},
+{id:"protestantism",name:"Protestantism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"The family of Christian traditions that split from Catholicism in the Reformation.",
+  pros:["Its emphasis on individual conscience helped seed later Enlightenment ideas about rights."],
+  cons:["Sectarian Christian conflict, e.g. in Northern Ireland, shows religion's destructive potential."],
+  tension:"The same reforming impulse that empowered individuals also splintered into centuries of conflict.",
+  pillarNotes:"As with most all religious denominations, Protestantism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction, and Protestantism's own fracturing into hundreds of denominations, followed by centuries of sectarian conflict, shows how quickly a reforming impulse toward individual conscience can splinter into division rather than unity. If one chooses to follow a denominational sect it can be personally rewarding and benign to the 7 pillar model, provided it remains strictly personal in nature, but its historical entanglement with state power is a reminder of why science and secularism must remain the vision's actual foundation.",
+},
+{id:"samaritanism",name:"Samaritanism",classification:"Personal-ethical",builderRole:"not-applicable",liked:false,
+  belief:"The ethic of helping a stranger in need regardless of tribe or creed.",
+  pros:["A positive residue of religious teaching, compatible with secular humanist ethics."],
+  cons:["As a personal ethic it has no mechanism for scaling into policy or institutions."],
+  tension:"A value everyone can agree on in principle, but it doesn't answer how a state should be run.",
+  pillarNotes:"Samaritanism is one of the few ideas on this list where religion and secular humanism land in the same place without friction — helping a stranger regardless of tribe or creed is exactly the human-centered ethic the 7 pillar model assumes as a baseline. It doesn't build institutions on its own, but a citizenry that actually practices it makes every pillar, from Environmentalism's demand for shared sacrifice to Feminism's demand for solidarity, considerably easier to sustain.",
+},
+{id:"scientism",name:"Scientism",classification:"Philosophical",builderRole:"pillar",liked:false,
+  belief:"Confidence in the scientific method as the most reliable route to new knowledge.",
+  pros:["Named with Secular Humanism as one of the two isms the book calls 'pure of intention.'"],
+  cons:["Deferring to expertise can crowd out legitimate value judgments science alone can't settle."],
+  tension:"Trusting the method versus trusting the experts who apply it.",
+  pillarNotes:"Scientism is the pillar that keeps the other six honest — it insists that claims about the world, from climate data underpinning Environmentalism to policy outcomes underpinning Modern Socialism, be tested against evidence rather than asserted on authority or tradition. Its limits are real; not every question a society faces is a scientific one, and expertise is not the same as wisdom. But without a shared commitment to evidence as the starting point, every other pillar becomes a matter of opinion rather than a matter of fact.",
+  countryExamples:[
+    {country:"Taiwan", label:"Evidence over ideology, by design", note:"A dedicated Ministry of Digital Affairs and the vTaiwan platform crowdsource facts and evidence into policy debate rather than leaving outcomes to ideology alone. Its early COVID-19 response, among the most effective in the world, leaned on real-time data integration over blunt top-down mandates — evidence-based governance tested under real pressure."}
+  ],
+},
+{id:"secularism",name:"Secularism",classification:"Philosophical",builderRole:"pillar",liked:false,
+  belief:"Separation of religious authority from the state and public institutions.",
+  pros:["Keeps religious authority from directly controlling law and policy."],
+  cons:["Can feel like it strips public life of shared meaning that religion once provided for many."],
+  tension:"Neutral ground for everyone, or empty ground for those who wanted their faith represented in law?",
+  pillarNotes:"Secularism is the pillar that makes room for all the others to coexist — it's the reason Catholicism, Islamism, Judaism, and every other faith can be practiced personally without any one of them dictating law for everyone else. What can feel like a loss of shared meaning to some is, from the vision's perspective, the only fair arrangement in a society that doesn't share a single religion; without secularism, the 7 pillar model collapses back into exactly the theocratic governance the book spends so much time warning against.",
+},
+{id:"sikhism",name:"Sikhism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"Monotheistic religion founded in 15th-century Punjab, emphasizing equality and service.",
+  pros:["Founded on equality and service — values that overlap closely with humanist ethics."],
+  cons:["Grouped by the book within its general critique of religion's historical fusion with political control."],
+  tension:"An equality-centered faith versus the book's broader skepticism of religious governance in general.",
+  pillarNotes:"As with most all religious denominations, Sikhism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction, though Sikhism's founding emphasis on equality and service brings it closer to humanist values than most. If one chooses to follow a denominational sect it can be personally rewarding and benign to the 7 pillar model, provided it remains strictly personal in nature, but the same rule applies here as to any faith: the moment equality-in-belief becomes a claim on state power, it stops supporting the vision and starts competing with it.",
+},
+{id:"socialism",name:"Modern Socialism",classification:"Economic",builderRole:"pillar",liked:false,
+  belief:"Social democracy with regulated capitalism and selective government control over public services — healthcare, education, infrastructure — within a framework of social justice and equality of opportunity.",
+  pros:["The book rates this 'solid' — the system of choice in the top five countries in the world by quality-of-life indexes for over 40 years, essentially a mixed economy blending government and private enterprise, with Canada ranking first in many of these systems."],
+  cons:["On its own, shares communism's tendency to blunt individual incentive to compete and create."],
+  tension:"The book's caveat: this cannot work without capitalism's market incentives to drive the productivity it depends on. The author proposes the two together, never one without the other.",
+  pillarNotes:"Modern Socialism is Capitalism's essential other half — the guardrail that keeps markets from calcifying into the greed and monopoly power the book warns about. Neither pillar functions well alone: capitalism without socialism's redistribution concentrates wealth at the top, and socialism without capitalism's incentives blunts the productivity it depends on. Together as Capsolism they form the economic backbone the other five pillars need to actually deliver on their promises.",
+},
+{id:"stoicism",name:"Stoicism",classification:"Personal-ethical",builderRole:"sub-pillar",parentPillar:"humanism",liked:false,
+  belief:"Ancient Greek philosophy of virtue, reason, and equanimity in the face of hardship.",
+  pros:["A personal philosophy of virtue and equanimity the book folds into humanism's 'positive ideas.'"],
+  cons:["Offers no mechanism of its own for organizing a state or economy."],
+  tension:"The book counts this as sustainable, but folds it into Secular humanism rather than giving it its own pillar.",
+  pillarNotes:"Like Atheism, Stoicism offers nothing of its own for organizing a state or economy, but its emphasis on reason and equanimity in the face of hardship is fully compatible with — and quietly reinforces — Secular Humanism's premise that people can build a good life through reason rather than dogma. It earns its place folded into the foundation pillar rather than standing as a separate one.",
+},
+{id:"zionism",name:"Zionism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"The movement for a Jewish national homeland, realized as the state of Israel.",
+  pros:["Gave a historically persecuted people a national homeland and self-determination."],
+  cons:["Raised by the book, in the Israeli-Palestinian conflict, as national identity entangled with violence."],
+  tension:"One people's self-determination is inseparable, in practice, from another's displacement claims.",
+  pillarNotes:"As with most all religious denominations, Zionism must remain detached from ordinary governance as in - “separation of church and state”, but it is a harder case than most because it fuses religious and national identity into a single political claim rather than keeping them separate. The 7 pillar model's commitment to secularism and human rights applies evenhandedly here: self-determination for a persecuted people is legitimate, but so is the same right for those displaced by it, and the model has no exception that lets one people's claim override another's.",
+},
+{id:"zoroastrianism",name:"Zoroastrianism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"Ancient Persian religion centered on the cosmic struggle between truth and falsehood.",
+  pros:["One of the oldest continuously practiced religions, built around a clear ethical struggle."],
+  cons:["Like other ancient religions, historically bound to the political authority of the empires that adopted it."],
+  tension:"Ancient ethical clarity versus how thoroughly it was used to legitimize imperial rule.",
+  pillarNotes:"As with most all religious denominations, Zoroastrianism must remain detached from governance as in - “separation of church and state”. Its own history illustrates the risk directly — a clear-eyed ethical framework built around the struggle between truth and falsehood was nonetheless used for centuries to legitimize the imperial rule of the Persian empires that adopted it. The ethics can be personally admirable; the moment they're conscripted to justify a ruler's authority, they stop serving the 7 pillar model and start undermining it.",
+},
+{id:"reimagined-democracy",name:"Democratism Reimagined",classification:"Governance-framework",builderRole:"pillar",liked:false,
+  belief:"Citizens participate in setting the rules governing their lives through voting — the only legitimate and fair way to manage the affairs of man. The book proposes reforming democracy itself to make good on that promise: multi-tiered voting, ending gerrymandering, and getting money out of politics.",
+  pros:["Remains, in principle, the only system the book treats as fair and legitimate for self-governance.","Directly targets democracy's real flaws — gerrymandering, money in politics, outdated voting structures."],
+  cons:["The book argues an educated citizenry has never been fully realized, and that social media has eroded democratic efficacy through misinformation — decision-making is 'too slow for the modern world' in its current form.","Untested at scale — no country currently runs the specific model the book proposes."],
+  tension:"The book's verdict on democracy as it stands is 'an idea past its time in its current state' — which is exactly why it proposes this reimagined version rather than abandoning the idea. Bold structural reform brings its own risk: untested change to a system people already trust, however imperfectly.",
+  pillarNotes:"In a fast changing world humans need to adapt in many ways. Unfortunately, reforming democratic systems is complex and time consuming. Those countries quickest to reimagine this component of their governance to fit the needs for a better educated public and minimize the inevitable corruption that plagues all democracies, will have more sustainability in its governance foundation going forward.",
+  countryExamplesIntro:"Unlike the other six pillars, no country today has implemented a genuinely reimagined democracy as this book describes it — that remains, by design, aspirational. What exists instead are separate components of it, built in different countries, that have never coalesced into a single system. Three are worth naming.",
+  countryExamples:[
+    {country:"Estonia", label:"Auditable, computer-assisted voting infrastructure", note:"Its i-Voting system and X-Road data backbone are the clearest real-world proof that the technical piece — secure, verifiable, large-scale digital voting — is achievable, exactly as the book argues modern computing now makes possible."},
+    {country:"Ireland", label:"Expertise-weighted suffrage, layered on universal suffrage", note:"Every citizen gets a normal vote for the lower house (the Dáil), but graduates of any Irish university or designated higher-education institution get an additional vote in the Seanad's Higher Education constituency — a live, functioning example of \"more strength to expertise\" rather than a purely theoretical proposal. A 2024 reform in effect since March 2025 expanded eligibility from roughly 150,000 graduates to nearly a million, broadening rather than narrowing who gets that extra weight."},
+    {country:"Hong Kong", label:"Expertise-weighted suffrage as direct sectoral representation", note:"Functional constituencies let professional sectors — accountancy, medicine, law, engineering, and others — elect legislators directly, a second real-world attempt at giving specialized knowledge a formal seat in the voting system.", caveat:"I want to be careful about how Hong Kong fits into this. Every idea that meaningfully departs from the status quo draws resistance when it first appears — that's not evidence the idea is wrong, it's simply what happens whenever a change threatens established interests or comfort. Reimagined Democracy, if it's ever going to exist, won't arrive fully formed; it will be built the way most durable ideas are, through trial, criticism, failure, and revision. Hong Kong's functional constituencies aren't offered here as proof that weighted, expertise-based suffrage succeeds — the broader political context they now operate within makes that judgment premature at best, and isn't mine to render. What they are is a real, present-day data point: evidence that the underlying mechanic, giving specialized knowledge a formal seat at the table alongside general suffrage, has actually been attempted, not merely theorized. Whether it proves workable, in Hong Kong or anywhere else, is exactly the kind of question this pillar assumes we don't have the answer to yet. I'm including it as a starting point in that process, not a verdict on it."}
+  ],
+  countryExamplesOutro:"Together, these three show the pieces exist and work independently — secure digital voting, expertise-weighted representation layered on universal suffrage, and expertise-weighted sectoral representation — but nowhere have they been combined. That gap is itself the evidence for why this pillar is aspirational rather than realized.",
+  special:true},
+{id:"royalism",name:"Royalism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"God has anointed a family with royal blood to protect and rule people — the 'Divine Right of Kings.'",
+  pros:["Offered continuity and a clear, unambiguous line of succession, avoiding constant power struggles."],
+  cons:["The book calls it 'a ruse to control people and justify power' — royal blood is no different from anyone else's, and monarchs mostly protected their own wealth and luxury rather than their subjects."],
+  tension:"5,000+ years of hereditary rule is a long track record, but the book treats it as evidence of persistence, not vindication.",
+  pillarNotes:"Royalism's claim to legitimacy rests entirely on birth rather than merit or consent, which puts it at odds with every pillar built on human equality and reasoned governance. Its long survival is a testament to how effectively fear and tradition can be used to control people, not evidence that hereditary rule serves anyone but the family that holds it — Democratism Reimagined exists precisely because legitimate authority has to come from the governed, not from bloodline.",
+},
+{id:"totalitarianism",name:"Totalitarianism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"One powerful individual through a single political authority should lead a country.",
+  pros:["Promises fast, decisive action without the friction of competing institutions or debate."],
+  cons:["The book calls this 'the greatest carnage and suffering on earth' — good dictators are rare and bad ones common, making reliance on one person precarious at best."],
+  tension:"Citing Stalin, Genghis Khan, Mao, and Putin together, the book treats the failure as near-universal, not a matter of picking the right leader.",
+  pillarNotes:"Totalitarianism concentrates exactly the kind of unchecked power that Democratism Reimagined's multi-tiered voting and anti-corruption safeguards are designed to prevent, and the book's citation of Stalin, Genghis Khan, Mao, and Putin together makes the point that this isn't a matter of bad luck with individual leaders — it's what unchecked power does to any system, regardless of who holds it. There is no version of the 7 pillar model compatible with a single authority answerable to no one.",
+},
+{id:"nationalism",name:"Nationalism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"A state or common race within borders is superior to others and must coalesce around one another to survive.",
+  pros:["Can build strong internal solidarity and shared purpose within a nation."],
+  cons:["Racial and national superiority claims have been thoroughly debunked by history and science, and the book ties nationalism directly to countless wars, including the Holocaust."],
+  tension:"The book warns this isn't just historical — it names rising nationalism today as a live, not settled, risk.",
+  pillarNotes:"Nationalism runs directly against secular humanism's premise that all people carry equal worth, and against liberalism's individual rights, since it subordinates the individual to the imagined superiority of the group. The book is right to flag this as a live risk rather than settled history — a resurgence of nationalist politics anywhere is a direct threat to every pillar that depends on cooperation across borders, especially Democratism Reimagined and Environmentalism, neither of which can function if nations refuse to act beyond narrow self-interest.",
+},
+{id:"terrorism",name:"Terrorism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Only violence can bring injustice to the world's attention and set the path for victory for the oppressed.",
+  pros:["Its stated aim — drawing attention to real injustice — is one the book doesn't dispute, only the method."],
+  cons:["The book says it 'badly misses' its second objective of creating a better world, relying on blood-thirsty revenge with little success, where real solutions require inter-group communication and compromise."],
+  tension:"The book separates the legitimacy of a grievance from the illegitimacy of the method used to pursue it.",
+  pillarNotes:"Terrorism's underlying grievances may sometimes be real, but its method is the exact opposite of how the 7 pillar model proposes to resolve conflict — Democratism Reimagined depends on voice through legitimate participation, not violence, and terrorism forecloses the inter-group communication and compromise the book identifies as the only thing that actually works. It has nothing to contribute to a better world beyond serving as a warning of what happens when people conclude the system offers them no other way to be heard.",
+},
+{id:"conservatism",name:"Conservatism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"A commitment to traditional values and ideas with reticence to change. Associated with free enterprise, private ownership, and socially traditional ideas.",
+  pros:["Provides stability and continuity, resisting change that hasn't been tested."],
+  cons:["The book calls it 'the foundation of privileged classes who want to ensure the continuation of the status quo for their benefit,' and says it doesn't fully embrace change or govern for all socioeconomic levels."],
+  tension:"Stability versus stagnation — the book's critique is about who stability actually benefits.",
+  pillarNotes:"Some aspects of “conservatism” have merit but it overall in most countries, it does not fit well as a supportive ideology for the 7 pillar model because the base idea is a reluctance to change the status quo other than incrementally. And the status quo in most countries leans heavily toward the rich and well invested. Thus conservative thinking presents barriers to change in a fast moving world where there are still glaring inequities in opportunity and treatment by the rule of law",
+},
+{id:"individualism",name:"Individualism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Personal freedom and achievement over collectivism. Awards social status to personal accomplishments — discoveries, innovations, artistic and athletic achievements.",
+  pros:["Rewards personal accomplishment and can drive innovation and achievement."],
+  cons:["The book says its weakness appears 'when taken too far' — individual selfishness clashing with the good of the collective whole."],
+  tension:"The book's own fix is humility: accomplishments also depend on the work of others, not the individual alone.",
+  pillarNotes:"As with many things in life individualism can be a force for good but when taken to far becomes a force for evil. As such the overall impact of this thinking is kind of neutral. Balance is required on the “Yin and Yang” of this idealism.",
+},
+{id:"populism",name:"Populism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Society is divided between a virtuous 'common people' and a corrupt elite. Legitimate political authority must rest with the people and their authentic will — typically embodied in a single charismatic leader who claims to speak for them.",
+  pros:["Channels genuine public grievance and can force attention onto problems elites have ignored."],
+  cons:["The book calls it 'democracy's most dangerous parasite' — the 'will of the people' ends up defined by the populist leader, not the people themselves, and it has historically been 'the gateway drug to authoritarianism.'"],
+  tension:"The grievance can be real even when the book considers the leader's claim to embody it false.",
+  pillarNotes:"Populism's appeal often comes from real failures within Democratism Reimagined — corruption, money in politics, a system that stops listening — but its solution of concentrating the 'true will of the people' in one leader is exactly the failure mode Democratism Reimagined is designed to prevent. The grievance can be legitimate while the cure is worse than the disease; a better world addresses the underlying democratic dysfunction directly rather than handing more power to whoever claims to speak for everyone.",
+},
+{id:"anarchism",name:"Anarchism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"All coercive authority — government, state, hierarchy — is illegitimate and should be abolished. People can organise themselves voluntarily and cooperatively without rulers.",
+  pros:["The book calls the underlying impulse toward freedom 'noble.'"],
+  cons:["Without enforceable structures, the book says the strongest and most ruthless inevitably fill the power vacuum, often more brutally than the institutions they replaced — 'catastrophically naive' as a prescription."],
+  tension:"A noble impulse with, per the book, no sustained example of working at scale.",
+  pillarNotes:"Anarchism appears to be a superficial impulse in pursuit of absolute individual freedom but history shows it would result in the opposite. There can be no freedom without safety and safety cannot exist without some form of written or unwritten sense of order and fair play. This automatically creates rules, laws, or policies owned by a larger group and negates the idea of everyone doing as they please. As such it can exist only in theory, never in any kind of sustaining practice. So anarchy has nothing positive to contribute to a vision for a better world.",
+},
+{id:"libertarianism",name:"Libertarianism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Individual liberty is the supreme political value. The state should be reduced to its bare minimum — protecting citizens from force and fraud — and must not interfere in economic activity, personal choices, or voluntary exchange between consenting adults.",
+  pros:["The book calls it 'a useful corrective to overreaching government.'"],
+  cons:["It 'fetishizes negative freedom' while ignoring the actual capacity to live a meaningful life — without redistribution, inherited wealth and circumstance of birth determine outcomes as rigidly as any aristocracy, and it can't produce collective goods like clean air or stable institutions."],
+  tension:"The book's own line: 'a useful corrective to overreaching government; a disastrous governing philosophy in its pure form.'",
+  pillarNotes:"Libertarianism's suspicion of concentrated power is worth keeping as a caution, but as a governing philosophy it works against nearly every pillar at once — a state too weak to fund public education undermines scientism and secular humanism alike, and one unable to regulate markets abandons Modern Socialism's half of the Capsolism balance entirely. It has a place as a check on overreach, not as a blueprint for building anything.",
+},
+{id:"agnosticism",name:"Agnosticism",classification:"Philosophical",builderRole:"sub-pillar",parentPillar:"scientism",liked:false,
+  belief:"No one can know the existence or lack thereof of god. It places the human mind in honest doubt on this question.",
+  pros:["T.H. Huxley, quoted in the book, insisted it's 'not a creed but a method' — following reason as far as it goes, then frankly recognizing the limits of your knowledge."],
+  cons:["As an epistemic stance rather than an ethical or governance framework, it offers no guidance on its own for how a society should be organized."],
+  tension:"The book calls it 'relatively benign' — one of the few isms it doesn't treat as a live threat either way.",
+  pillarNotes:"Agnosticism looks unrelated to governance at first glance, but it shares scientism's core discipline — refusing to draw conclusions without evidence. Agnostics reinforce that habit of mind across the wider culture, indirectly strengthening scientism, one of the model's foundational pillars, even though agnosticism isn't itself one of the seven.",
+},
+{id:"nihilism",name:"Nihilism",classification:"Philosophical",builderRole:"not-applicable",liked:false,
+  belief:"Life has no intrinsic meaning, value, or purpose. All moral principles, political systems, and truth claims are ultimately groundless. Nothing matters in any objective sense.",
+  pros:["Usefully demolishes false certainties and punctures dogma, per the book."],
+  cons:["A philosophy that concludes nothing matters cannot motivate the cooperation, sacrifice, or empathy civilization depends on — the book calls it 'a diagnosis without a cure.'"],
+  tension:"The book points out the irony directly: passionately arguing that nothing has meaning is itself a contradiction.",
+  pillarNotes:"Nihilism can be a useful solvent against dogma, but a governing vision needs people to believe building something better is worth the effort, and nihilism offers no reason to bother. It contributes nothing constructive to any of the 7 pillars — Environmentalism, Feminism, and Democratism Reimagined all require a conviction that outcomes matter, which is precisely the conviction nihilism denies.",
+},
+{id:"utilitarianism",name:"Utilitarianism",classification:"Economic",builderRole:"not-applicable",liked:false,
+  belief:"The morally correct action is the one that produces the greatest good for the greatest number of people. Pleasure, well-being, and happiness are the only intrinsically valuable things; pain and suffering are the only intrinsic evils.",
+  pros:["The book calls it 'a powerfully rational framework' underpinning much of modern policy, from healthcare rationing to public welfare systems."],
+  cons:["It can justify harm to minorities if the aggregate benefit is sufficient, reducing individuals to variables in an equation — the book calls it 'dangerously incomplete' as a complete ethical system."],
+  tension:"Essential as moral scaffolding, per the book, but not sufficient on its own.",
+  pillarNotes:"Utilitarianism supplies the cost-benefit logic behind a great deal of the policy the 7 pillar model would actually implement — healthcare rationing, public investment, environmental trade-offs — but it needs liberalism's individual rights standing alongside it as a check, since a pure calculation of aggregate benefit can justify running over minorities the model is otherwise committed to protecting. It's useful scaffolding for the vision, not a substitute for it.",
+},
+{id:"transhumanism",name:"Transhumanism",classification:"Economic",builderRole:"not-applicable",liked:false,
+  belief:"Humanity can and should use technology — genetic engineering, artificial intelligence, neural augmentation, life extension — to transcend current biological limitations and fundamentally transform the human condition.",
+  pros:["Represents real and important scientific progress in extending and enhancing human life."],
+  cons:["The book calls it 'the secular successor to religious salvation narratives' — a promise of immortality that tends to be the exclusive dream of the wealthy, widening the gap between the powerful and the powerless."],
+  tension:"The book's concern isn't the technology itself but that 'the ethical framework has not kept pace with the ambition.'",
+  pillarNotes:"Transhumanism sits closest to Scientism of anything on this list — it's built entirely on faith in scientific progress — but the book's concern is well placed: without Modern Socialism's guardrails ensuring broad access rather than a wealthy few, life-extension and augmentation technology becomes a new axis of inequality rather than a shared human advance. The technology itself isn't the problem; the 7 pillar model just insists the ethics and access catch up before the ambition runs ahead of them.",
+},
+{id:"monotheism",name:"Monotheism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"God is invested in all humans individually and can intervene at will. Rewards in the next life are dependent on following a given set of rules in this one.",
+  pros:["Provides hope and consolation to believers, which the book doesn't dispute."],
+  cons:["The book finds no evidence god intervenes or even exists, and ties monotheistic religion to 'fear, wars, intolerance, anti-science conspiracy, bigotry, hatred, colonialism, torture and much more.'"],
+  tension:"The book explicitly separates the comfort religion provides from the truth of its claims — you can grant one without the other.",
+  pillarNotes:"As with the specific faiths built on it, monotheism itself must stay out of governance — the moment a single all-powerful god-concept becomes the justification for law, dissenters stop being citizens and start being heretics. History bears this out directly: monotheistic religion is entangled with the wars, colonialism, and intolerance the book catalogs precisely because certainty about one true god leaves no room for compromise. As a private source of comfort it can coexist peacefully with the 7 pillar model; as a claim on political authority it is incompatible with secular humanism and secularism both.",
+},
+{id:"polytheism",name:"Polytheism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"Religious movements believing in several or many gods.",
+  pros:["Historically often coexisted with other belief systems without demanding exclusive claim to truth."],
+  cons:["The book finds no evidence for a single god, let alone many, and notes that prayers or sacrifices to the gods haven't measurably prevented human suffering."],
+  tension:"If a god picked winners and losers for reasons humans don't understand, the book asks what that god-concept is actually explaining.",
+  pillarNotes:"As with most all religious denominations, polytheism must remain detached from governance as in - “separation of church and state”. Throughout history theocracies have been a destructive force in the world and serve mostly to create division and destruction, though polytheistic traditions have generally been less prone to this than monotheistic ones, since a pantheon rarely demands the same exclusive claim to truth. It does, however, leave open the same risk as any faith: members wanting scripture or ritual to carry weight in public policy, which undermines the 7 pillar model's foundation in secularism and science.",
+},
+{id:"taoism",name:"Taoism",classification:"Religious",builderRole:"religious-governance",liked:false,
+  belief:"No belief in a personal god. The path to enlightenment is through the practice of morality, meditation, and wisdom. Nothing is fixed — change is always possible. Harmony, respect for nature and family are central.",
+  pros:["The book calls it 'hard to argue against' — its focus on purity, harmony, and respect rather than gods has made it, alongside Buddhism, far less violent and more tolerant across the centuries."],
+  cons:["Like Buddhism, it never evolved into a standalone system of national governance."],
+  tension:"No claim to monotheistic supremacy is exactly what the book credits for its comparatively peaceful history.",
+  pillarNotes:"As with most all religious denominations, Taoism must remain detached from governance as in - “separation of church and state”, though it has less to answer for here than most — its rejection of any single supreme god has historically made it, like Buddhism, considerably less prone to the wars and intolerance that monotheistic claims to exclusive truth have produced. Its emphasis on harmony and respect for nature even echoes Environmentalism's own priorities. As with any faith, though, it remains a personal philosophy rather than a governing one, and the 7 pillar model still depends on secularism and science, not scripture, to make its actual decisions.",
+},
+{id:"racism",name:"Racism",classification:"Political",builderRole:"not-applicable",liked:false,
+  belief:"Some races are superior to others and should form a protective barrier against outside erosion and influence.",
+  pros:[],
+  cons:["The book calls it 'built upon a foundation of ignorance, fear and greed' — there is no truth to racial superiority, and it has historically sown 'hatred, violence, and death,' citing Nazi Aryan supremacy as history's defining warning."],
+  tension:"The book treats this as having no redeeming case to weigh — only the mechanics of how such ignorance takes hold and spreads.",
+  pillarNotes:"Racism has no relevance to the 7 pillar model except as the thing the model exists to guard against — it is the direct negation of secular humanism's premise of equal human worth, and every pillar that depends on people cooperating across difference, from Feminism to Democratism Reimagined, is undermined by it. There is nothing here to weigh or reconcile; it is simply incompatible with the vision."
+}
+];
+
+// Restore liked state from localStorage (2026-07-19) — added specifically so that
+// editing this file to test a change doesn't wipe out a manual test selection of a
+// dozen-plus isms every time, forcing it to be re-clicked through the UI from
+// scratch. This runs once, synchronously, right after ISMS is defined and before
+// any rendering happens, so every screen (Encyclopedia, Worldview, Builder) reflects
+// the restored selection on first paint rather than the source file's liked:false
+// defaults. Wrapped in try/catch: some browsers restrict localStorage on file://
+// pages, and a storage failure here shouldn't break the rest of the app.
+try {
+  const savedLiked = JSON.parse(localStorage.getItem("worldviewBuilderLikedIsms") || "null");
+  if (Array.isArray(savedLiked)) {
+    const savedSet = new Set(savedLiked);
+    ISMS.forEach(i => { i.liked = savedSet.has(i.id); });
+  }
+} catch (e) { /* localStorage unavailable or corrupt — fall back to source defaults */ }
+function persistLikedIsms(){
+  try { localStorage.setItem("worldviewBuilderLikedIsms", JSON.stringify(ISMS.filter(i=>i.liked).map(i=>i.id))); }
+  catch (e) { /* ignore — persistence is a convenience, not a requirement */ }
+}
+
+// Every ism here is one the book treats as sustainable — this is deliberately
+// a list of what the author likes, not a full verdict table.
+// Capitalism and Socialism are listed separately: the book coins "Capsolism" in its
+// own narrative to describe blending the two, but that coined term isn't one of the
+// isms the book actually lists in its tables, so it isn't an Encyclopedia entry or a
+// choice on its own — only its two real ingredients are.
+const PILLAR_ORDER = ["humanism","scientism","capitalism","socialism","environmentalism","feminism","liberalism","reimagined-democracy"];
+const PILLAR_LABELS = {humanism:"Secular humanism",scientism:"Scientism",capitalism:"Capitalism",socialism:"Socialism",environmentalism:"Environmentalism",feminism:"Feminism",liberalism:"Liberalism","reimagined-democracy":"Democratism Reimagined"};
+
+// TEST FEATURE (2026-07-15): author-written commentary on how an ism relates to the
+// 7 pillars, distinct from the book-sourced pros/cons/tension above. Only Agnosticism
+// has a pillarNotes value so far — this is a one-ism trial run, not yet rolled out.
+// The intro line is shared boilerplate, kept out of each Ism record so it isn't
+// repeated 47 times in the data or the printed report.
+const PILLAR_NOTES_INTRO = "Every ism in this encyclopedia influences, directly or indirectly and either positively or negatively, the 7 pillars of the author's model for a better world.";
+
+// ---------- TAB SWITCHING ----------
+function showTab(tab){
+  ["home","enc","world","build"].forEach(t=>{
+    document.getElementById("screen-"+t).style.display = (t===tab)?"block":"none";
+    document.getElementById("tab-"+t).classList.toggle("active", t===tab);
+  });
+  document.getElementById("screen-worldview-info").style.display = "none";
+  document.getElementById("screen-vision-info").style.display = "none";
+  document.getElementById("screen-pillars-info").style.display = "none";
+  document.getElementById("screen-step-info").style.display = "none";
+  if(tab==="world") renderWorldview();
+  if(tab==="build") renderBuilder();
+}
+
+function openWorldviewInfo(){
+  document.getElementById("screen-home").style.display = "none";
+  document.getElementById("screen-worldview-info").style.display = "block";
+}
+function closeWorldviewInfo(){
+  document.getElementById("screen-worldview-info").style.display = "none";
+  document.getElementById("screen-home").style.display = "block";
+}
+
+function openVisionInfo(){
+  document.getElementById("screen-home").style.display = "none";
+  document.getElementById("screen-vision-info").style.display = "block";
+}
+function closeVisionInfo(){
+  document.getElementById("screen-vision-info").style.display = "none";
+  document.getElementById("screen-home").style.display = "block";
+}
+
+// Opened from the "Review 7 Pillars" link inside Step 3's pillar-relation section;
+// returns to the Builder screen it was opened from, not Home.
+function openPillarsInfo(){
+  document.getElementById("screen-build").style.display = "none";
+  document.getElementById("screen-pillars-info").style.display = "block";
+}
+function closePillarsInfo(){
+  document.getElementById("screen-pillars-info").style.display = "none";
+  document.getElementById("screen-build").style.display = "block";
+}
+
+// Full text for each step — kept out of the home page itself so Step 3 can explain
+// the isms-to-governance link (isms/beliefs a leader combines form a vision; a
+// government then uses that vision to decide the laws, rights, and trade-offs it
+// makes for its constituents) without making the home page long or scrolly.
+const STEP_INFO = {
+  1: {
+    title:"Step 1 — Ism encyclopedia",
+    text:["A listing of 47 isms across political, economic, spiritual, and philosophical categories, each with a brief description, pros, and cons. Choose the ones you agree with using a simple toggle. These are the most widely known ideas used to influence people politically, spiritually, philosophically, and economically, and they've driven ideology throughout most of written history.",
+    "Isms provide values, rules, or guidelines for how people and society should think and be organized. At their core, they're about controlling people in one way or another — and that impulse toward group conformity is part of human nature, made possible once an idea exists and a way to share it does too.",
+    "Liking an ism means joining a group of thousands, even millions, who share that belief, whether you think of it that way or not. You might choose for personal reasons or for what you believe serves your community or country best — it's your call. Most isms carry both strengths and weaknesses; weigh them, since nothing here is perfect."]
+  },
+  2: {
+    title:"Step 2 — Your custom worldview",
+    text:["The choices you make in step one automatically flow into this silo to form the foundation of your belief system — a running list of the isms you've endorsed, organized by category.",
+    "This list merely names those ideas/isms as part of your worldview. A full picture will appear in step 3, where you can see a more robust view of what your choices involve by way of comparison to the author, and the pros and cons of each choice you make. Feel free to go back to your choices in step 1 and deselect or add more choices as you please. Many people have not thought this process through thoroughly, and of course people routinely change their thinking from time to time. So by all means change your selections if more thought leads you in that direction. The app can be used as a kind of \"what if\" calculator, much as we do with spreadsheets."]
+  },
+  3: {
+    title:"Step 3 — A Vision for the World You Want",
+    text:["This portal compares your choices to the author's own model and surfaces the tensions between them. Choosing isms matters because leadership works the same way: combining which beliefs to keep, discard, or blend forms a vision — a picture of what society should value and protect — and government turns that vision into real choices: the laws it passes, the rights it protects, the trade-offs it accepts.",
+    "This step builds your own version of that process automatically from Step 1 — your liked isms are your vision, compared against the author's to show where you align and where you diverge, fleshing out detail on beliefs you may have only considered superficially before. The result is a printable, shareable report of your personal vision for a better world.",
+    "The point isn't to suggest one worldview is better than another — like snowflakes, no two people's beliefs are exactly alike, whether the differences are subtle or dramatic. Comparison simply helps you see your own beliefs more clearly; most things are hard to understand in isolation, the same way you can't grasp \"up\" without \"down.\""]
+  }
+};
+function openStepInfo(n){
+  document.getElementById("step-info-title").textContent = STEP_INFO[n].title;
+  document.getElementById("step-info-text").innerHTML = STEP_INFO[n].text.map(function(p){ return "<p style=\"margin:0 0 12px;\">"+p+"</p>"; }).join("");
+  document.getElementById("step-info-print").style.display = (n===3) ? "flex" : "none";
+  document.getElementById("screen-home").style.display = "none";
+  document.getElementById("screen-step-info").style.display = "block";
+}
+function printStepInfo(){
+  window.print();
+}
+function printBuilder(){
+  window.print();
+}
+function closeStepInfo(){
+  document.getElementById("screen-step-info").style.display = "none";
+  document.getElementById("screen-home").style.display = "block";
+}
+
+// ---------- ENCYCLOPEDIA ----------
+const CLASSES = ["All","Political","Religious","Philosophical","Economic","Personal-ethical","Governance-framework"];
+let encFilter = "All";
+let encQuery = "";
+
+function renderChips(){
+  const el = document.getElementById("enc-chips");
+  el.innerHTML = CLASSES.map(c=>`<span class="chip ${c===encFilter?'active':''}" onclick="setEncFilter('${c}')">${c}</span>`).join("");
+}
+function setEncFilter(c){ encFilter = c; renderChips(); renderList(); }
+
+function renderList(){
+  const q = encQuery.toLowerCase();
+  const items = ISMS.filter(i=>{
+    const matchClass = encFilter==="All" || i.classification===encFilter;
+    const matchQuery = !q || i.name.toLowerCase().includes(q) || i.belief.toLowerCase().includes(q);
+    return matchClass && matchQuery;
+  }).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById("enc-count").textContent = items.length + " of " + ISMS.length + " isms";
+  document.getElementById("enc-list").innerHTML = items.map(i=>rowHtml(i)).join("");
+}
+
+function rowHtml(i){
+  // Row-level like toggle replaces the old read-only liked-dot, with a bordered
+  // "read first" affordance in between. The box+label+toggle are grouped as one
+  // .row-actions unit so they wrap to their own second line together (instead of
+  // splitting oddly) whenever a longer name/classification leaves no room on one line.
+  const topRow = `
+    <div class="row row-readfirst" onclick="toggleDetail('${i.id}')">
+      <div class="rowtext">
+        <div class="rowtitle">${i.name}</div>
+        <div class="rowsub">${i.classification}</div>
+      </div>
+      <div class="row-actions">
+        <span class="read-first-box">read first <span class="chevron" id="chev-${i.id}">&#8250;</span></span>
+        <span class="like-label">like this idea</span>
+        <div class="switch ${i.liked?'on':''}" id="switch-row-${i.id}" onclick="event.stopPropagation();toggleLike('${i.id}')"><div class="knob"></div></div>
+      </div>
+    </div>`;
+  return `
+  <div>
+    ${topRow}
+    <div class="detail" id="detail-${i.id}">
+      <p>${i.belief}</p>
+      <div class="plabel">Pros, per the book</div>
+      ${i.pros.length? `<ul>${i.pros.map(x=>`<li>${x}</li>`).join("")}</ul>` : '<p style="color:var(--muted);font-style:italic;">The book states no pro for this one.</p>'}
+      <div class="plabel">Cons, per the book</div>
+      ${i.cons.length? `<ul>${i.cons.map(x=>`<li>${x}</li>`).join("")}</ul>` : '<p style="color:var(--muted);font-style:italic;">The book states no con for this one.</p>'}
+      <div class="tension">${i.tension}</div>
+      ${i.pillarNotes ? `
+      <div class="author-note">
+        <div class="author-note-heading">Additional author's comments about how ${i.name} relates to the 7 pillars of "A Vision for a Better World"</div>
+        <p>${i.pillarNotes}</p>
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+
+function toggleDetail(id){
+  const d = document.getElementById("detail-"+id);
+  const chev = document.getElementById("chev-"+id);
+  const open = d.classList.contains("open");
+  document.querySelectorAll(".detail.open").forEach(x=>x.classList.remove("open"));
+  document.querySelectorAll(".chevron").forEach(x=>x.style.transform="rotate(0deg)");
+  if(!open){ d.classList.add("open"); chev.style.transform="rotate(90deg)"; }
+}
+// Single source of truth per section: one "expanded" class on the wrapper drives
+// both on-screen content visibility and print visibility (see CSS). Replaces an
+// earlier version that toggled two separate classes on two separate elements
+// (content's "open", header's "no-print") — that required staying in sync on every
+// toggle and couldn't be fully ruled out as the cause when a section that was
+// visibly expanded on screen didn't show up in a printed/PDF export.
+function toggleVisionSection(){
+  const wrap = document.getElementById("vision-wrap");
+  const chev = document.getElementById("vision-chev");
+  const expanded = wrap.classList.contains("expanded");
+  wrap.classList.toggle("expanded", !expanded);
+  chev.style.transform = expanded ? "rotate(0deg)" : "rotate(90deg)";
+}
+function toggleCountriesSection(){
+  const wrap = document.getElementById("countries-wrap");
+  const chev = document.getElementById("countries-chev");
+  const expanded = wrap.classList.contains("expanded");
+  wrap.classList.toggle("expanded", !expanded);
+  chev.style.transform = expanded ? "rotate(0deg)" : "rotate(90deg)";
+}
+function toggleLike(id){
+  const ism = ISMS.find(x=>x.id===id);
+  ism.liked = !ism.liked;
+  // Not every ism has every one of these elements (only Agnosticism has switch-row-
+  // right now, and it no longer has likedot-) so each update is guarded.
+  const detailSwitch = document.getElementById("switch-"+id);
+  if(detailSwitch) detailSwitch.classList.toggle("on", ism.liked);
+  const rowSwitch = document.getElementById("switch-row-"+id);
+  if(rowSwitch) rowSwitch.classList.toggle("on", ism.liked);
+  const dot = document.getElementById("likedot-"+id);
+  if(dot) dot.classList.toggle("on", ism.liked);
+  persistLikedIsms();
+}
+function jumpTo(id){
+  showTab('enc');
+  encFilter="All"; encQuery=""; document.getElementById("enc-search").value="";
+  renderChips(); renderList();
+  setTimeout(()=>{
+    const d = document.getElementById("detail-"+id);
+    if(d){ if(typeof d.scrollIntoView==="function"){ d.scrollIntoView({block:"center"}); } toggleDetail(id); }
+  },50);
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  renderChips(); renderList();
+  document.getElementById("enc-search").addEventListener("input",(e)=>{encQuery=e.target.value;renderList();});
+});
+
+// ---------- WORLDVIEW ----------
+function renderWorldview(){
+  const liked = ISMS.filter(i=>i.liked).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById("world-count").textContent = liked.length + " liked so far";
+  if(liked.length===0){
+    document.getElementById("world-list").innerHTML = `<div class="empty">Nothing liked yet. Go to the Encyclopedia, read the pros and cons, and toggle like on the ideas that fit your worldview.</div>`;
+    return;
+  }
+  const groups = {};
+  liked.forEach(i=>{ (groups[i.classification]=groups[i.classification]||[]).push(i); });
+  document.getElementById("world-list").innerHTML = Object.keys(groups).sort().map(cls=>`
+    <div class="plabel" style="margin-top:14px;">${cls}</div>
+    ${groups[cls].map(i=>`
+      <div class="row" onclick="jumpTo('${i.id}')">
+        <span class="likedot on"></span>
+        <div class="rowtext"><div class="rowtitle">${i.name}</div></div>
+        <span class="chevron">&#8250;</span>
+      </div>`).join("")}
+  `).join("");
+}
+
+// ---------- BUILDER ----------
+// The author's column is fixed and permanent: only the 7 isms the book treats as
+// sustainable ever appear there, and it always reads "Liked" — nothing the author
+// rejects is shown, and nothing the user does changes this column.
+// The user's side of the table, by contrast, expands to match whatever the user
+// has actually liked: the 8 pillar rows always show first (liked or not, so the
+// full author's model stays visible). Some isms (Atheism, Stoicism) are also
+// author-endorsed/sustainable but aren't independent pillars — the book folds them
+// inside Secular humanism rather than weighting them on their own — so they render
+// as nested sub-rows under their parent pillar instead of the pillar list, still
+// with the author's column reading "Liked", but not counted in the pillar tally.
+// Anything else the user likes (e.g. Communism, Catholicism) that isn't part of the
+// author's model at all gets its own row further down — for those the author's
+// column shows a dash, not "Liked" and not "Not liked", since the book simply
+// doesn't count them among its sustainable picks.
+function renderBuilder(){
+  const pillarRows = PILLAR_ORDER.map(id=>{
+    const liked = ISMS.find(i=>i.id===id).liked;
+    return { id, label: PILLAR_LABELS[id], liked, authors:"Liked" };
+  });
+  const subPillars = ISMS.filter(i=>i.builderRole==="sub-pillar");
+  const coveredIds = new Set([...PILLAR_ORDER, ...subPillars.map(i=>i.id)]);
+  const extraLiked = ISMS.filter(i=>i.liked && !coveredIds.has(i.id));
+  const extraRows = extraLiked.map(i=>({ label:i.name, liked:true, authors:"&ndash;" }));
+
+  const agree = pillarRows.filter(r=>r.liked).length;
+  document.getElementById("build-summary").innerHTML = `
+    <div class="card">You've liked <strong>${agree} of ${pillarRows.length}</strong> of the isms the author's model treats as sustainable${extraRows.length? `, plus <strong>${extraRows.length}</strong> other ${extraRows.length===1?'choice':'choices'} outside that model` : ''}.</div>
+  `;
+
+  let tableHtml = "";
+  pillarRows.forEach(r=>{
+    // Capitalism and Socialism share one merged author's-column cell spanning both
+    // rows — the author's own coined term, Capsolism, sits between them there to
+    // show he treats the pair as joined, without it existing as its own ism anywhere.
+    if(r.id==="capitalism"){
+      // "Liked" now shown in each of the Capitalism/Socialism rows individually,
+      // same left-aligned style as every other pillar row — no longer merged into
+      // one centered rowspan cell. The Capsolism explanatory note moves into its
+      // own 4th column, right of "Liked," vertically centered across both rows via
+      // rowspan (the <thead>'s matching empty 4th <th> keeps the header aligned;
+      // every other row simply leaves this column blank, which is valid HTML).
+      tableHtml += `
+      <tr>
+        <td>${r.label}</td>
+        <td class="${r.liked?'agree':'pending'}">${r.liked?'Liked':'&ndash;'}</td>
+        <td class="agree">Liked</td>
+        <td class="capsolism-note" rowspan="2"><div class="capsolism-inner"><span class="capsolism-brace" aria-hidden="true">{</span><span class="capsolism-text">Inseparable for author, hence<br>&ldquo;Capsolism&rdquo;</span></div></td>
+      </tr>`;
+    } else if(r.id==="socialism"){
+      tableHtml += `
+      <tr>
+        <td>${r.label}</td>
+        <td class="${r.liked?'agree':'pending'}">${r.liked?'Liked':'&ndash;'}</td>
+        <td class="agree">Liked</td>
+      </tr>`;
+    } else {
+      tableHtml += `
+      <tr>
+        <td>${r.label}</td>
+        <td class="${r.liked?'agree':'pending'}">${r.liked?'Liked':'&ndash;'}</td>
+        <td class="agree">${r.authors}</td>
+      </tr>`;
+    }
+    subPillars.filter(s=>s.parentPillar===r.id).forEach(s=>{
+      tableHtml += `
+      <tr>
+        <td style="padding-left:16px;color:var(--muted);font-size:11px;">&#8618; ${s.name}<div class="rowsub" style="font-size:9.5px;">within ${r.label}</div></td>
+        <td class="${s.liked?'agree':'pending'}">${s.liked?'Liked':'&ndash;'}</td>
+        <td class="agree">Liked</td>
+      </tr>`;
+    });
+  });
+  if(extraRows.length){
+    tableHtml += `<tr class="plabel-row"><td colspan="3" class="plabel" style="padding-top:12px;">Your other choices, outside the author's model</td></tr>`;
+    tableHtml += extraRows.map(r=>`
+      <tr>
+        <td>${r.label}</td>
+        <td class="agree">Liked</td>
+        <td class="pending">${r.authors}</td>
+      </tr>`).join("");
+  }
+  document.getElementById("build-table").innerHTML = tableHtml;
+
+  renderCountryExamples();
+  renderProsConsSummary();
+}
+
+// Country examples supporting the author's own pillar model — independent of which
+// isms the user has liked, since this is evidence for the author's choices, not a
+// reflection of the user's own. One example per pillar, except Reimagined Democracy,
+// which carries 3 named components (countryExamplesIntro/Outro) since the point there
+// is precisely that no single country combines the pieces — see Isms_App_Spec.md
+// Section 3.4. Each entry may carry an optional `caveat` paragraph (used for Hong
+// Kong under Reimagined Democracy) rendered directly under that entry's note.
+const COUNTRY_EXAMPLES_PREAMBLE = "No two implementations of an ism look exactly alike. Every country's version is shaped by its own history and compromises, and reasonable people can differ on what a given ism is ultimately meant to accomplish. What counts for an example here isn't a perfect match to the letter of a pillar — it's that the pillar's essential principles are genuinely present in how a country put it into practice. That's the bar each example below is held to.";
+function renderCountryExamples(){
+  const box = document.getElementById("countries-section");
+  const withExamples = PILLAR_ORDER
+    .map(id=>ISMS.find(i=>i.id===id))
+    .filter(i=>i.countryExamples && i.countryExamples.length);
+  if(!withExamples.length){ box.innerHTML = "<p>No country examples added yet.</p>"; return; }
+  const preamble = `<p style="font-style:italic;">${COUNTRY_EXAMPLES_PREAMBLE}</p>`;
+  // Inserts the pillar-label span right after the opening <p ...> tag of a given
+  // paragraph's HTML, so the pillar name (e.g. "Secular humanism:") sits on the
+  // same line as the text that follows it — matching the bold-lead-in-plus-colon
+  // pattern already used in "How your liked choices relate to the 7 pillars" just
+  // above this section, instead of sitting alone as its own heading line.
+  const withInlineLabel = (label, paragraphHtml)=>{
+    const tagEnd = paragraphHtml.indexOf(">") + 1;
+    return paragraphHtml.slice(0, tagEnd) + `<span class="author-note-heading-inline">${label}:</span> ` + paragraphHtml.slice(tagEnd);
+  };
+  const sections = withExamples.map(i=>{
+    const label = (i.id==="capitalism" || i.id==="socialism") ? "Capsolism" : PILLAR_LABELS[i.id];
+    const intro = i.countryExamplesIntro ? `<p style="font-style:italic;">${i.countryExamplesIntro}</p>` : "";
+    const itemsArr = i.countryExamples.map(c=>{
+      const caveatHtml = c.caveat ? `<p>${c.caveat}</p>` : "";
+      return `<p><strong>${c.country} — ${c.label}:</strong> ${c.note}</p>${caveatHtml}`;
+    });
+    const outro = i.countryExamplesOutro ? `<p>${i.countryExamplesOutro}</p>` : "";
+    // Democratism Reimagined is the longest entry here (intro + 3 countries +
+    // Hong Kong's caveat + outro) and always sits last in the report, right before
+    // "For reference" — the "keep-with-heading" treatment used for every other
+    // pillar (heading welded only to its first block, rest flowing normally) wasn't
+    // enough here: its Estonia/Ireland/Hong Kong paragraphs were rendering fine on
+    // screen but going missing from the printed PDF entirely, not just reflowing.
+    // Rather than continue relying on avoid-hints for a block this size, force the
+    // whole thing onto its own fresh page as one unit — the same forced-break
+    // approach that reliably fixed the "Strengths" heading earlier.
+    if(i.id === "reimagined-democracy"){
+      return `<div class="force-new-page">${withInlineLabel(label, intro)}${itemsArr.join("")}${outro}</div>`;
+    }
+    // Every other pillar: weld the label-bearing first paragraph to whatever comes
+    // right after it — its intro if it has one, otherwise its first country entry —
+    // so it can never be stranded alone at a page bottom. Everything after that
+    // first block flows normally (each paragraph is still individually protected
+    // from an internal mid-sentence split elsewhere).
+    const firstBlockRaw = intro || itemsArr[0] || "";
+    const firstBlock = withInlineLabel(label, firstBlockRaw);
+    const restBlocks = (intro ? itemsArr : itemsArr.slice(1)).join("") + outro;
+    return `<div class="keep-with-heading">${firstBlock}</div>${restBlocks}`;
+  }).join("");
+  box.innerHTML = preamble + sections;
+}
+
+// Aggregated from the book's own pros/cons text, drawn only from the isms you've
+// liked anywhere in the Encyclopedia (not just the 7 pillars above). Stays empty
+// until you've liked at least one — this is a reflection of your choices, not a
+// generic blurb. Some isms carry only a pro or only a con in the book, so each
+// side is built independently and simply skips isms with nothing to add there.
+function renderProsConsSummary(){
+  const box = document.getElementById("build-prosbrief");
+  const liked = ISMS.filter(i=>i.liked);
+  if(liked.length===0){ box.innerHTML = ""; return; }
+
+  const withPros = liked.filter(i=>i.pros && i.pros.length);
+  const withCons = liked.filter(i=>i.cons && i.cons.length);
+  // Each ism gets its own <p> rather than one fused paragraph — this gives print
+  // pagination a real place to break between isms instead of mid-sentence.
+  const prosHtml = withPros.length
+    ? withPros.map(i=>`<p class="pc-line"><strong>${i.name}:</strong> ${i.pros.join(" ")}</p>`).join("")
+    : `<p class="pc-line">None of your liked isms list a strength in the book.</p>`;
+  const consHtml = withCons.length
+    ? withCons.map(i=>`<p class="pc-line"><strong>${i.name}:</strong> ${i.cons.join(" ")}</p>`).join("")
+    : `<p class="pc-line">None of your liked isms list a trade-off in the book.</p>`;
+
+  // TEST FEATURE (2026-07-15): "Variant A" placement for pillarNotes — aggregated
+  // from liked isms only, same pattern as the pros/cons blocks above. Only shows
+  // content for isms that have pillarNotes filled in (currently just Agnosticism),
+  // so like it in the Encyclopedia to see this section populate.
+  const withPillarNotes = liked.filter(i=>i.pillarNotes);
+  const pillarNotesHtml = withPillarNotes.length
+    ? `<p class="pc-line author-note-intro">${PILLAR_NOTES_INTRO}</p>` +
+      withPillarNotes.map(i=>`<p class="pc-line"><strong>${i.name}:</strong> ${i.pillarNotes}</p>`).join("")
+    : `<p class="pc-line">None of your liked isms have additional author's commentary yet.</p>`;
+
+  box.innerHTML = `
+    <div class="pc-heading">Strengths your choices bring, per the book</div>
+    ${prosHtml}
+    <div class="pc-heading">Trade-offs your choices carry, per the book</div>
+    ${consHtml}
+    <div class="pc-heading" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <span>How your liked choices relate to the 7 pillars</span>
+      <span class="pillars-link no-print" onclick="openPillarsInfo()">Review 7 Pillars &#8250;</span>
+    </div>
+    ${pillarNotesHtml}
+  `;
+}
+
+renderWorldview();
+renderBuilder();
+</script>
+</body>
+</html>
