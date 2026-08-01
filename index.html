@@ -20,7 +20,8 @@
   header.hero h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;margin:0 0 4px;}
   header.hero .subtitle{font-family:Georgia,'Times New Roman',serif;font-size:16px;color:#6b6860;margin:0 0 22px;}
 
-  .pillars{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 28px;font-size:13px;margin:0 0 24px;}
+  .pillars{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;margin:0 0 24px;}
+  .pillars-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 28px;}
   .pillars span{display:inline-flex;align-items:center;white-space:nowrap;}
   .pillars span i{display:inline-block;width:10px;height:10px;margin-right:8px;border-radius:2px;flex-shrink:0;}
 
@@ -95,13 +96,17 @@
   <p class="subtitle">The Looking Glass of My Worldview — by Gordon Anton</p>
 
   <div class="pillars">
-    <span><i style="background:#B9A8DC"></i>Secular humanism</span>
-    <span><i style="background:#8C2020"></i>Regulated capitalism</span>
-    <span><i style="background:#5B9FD6"></i>Scientism</span>
-    <span><i style="background:#5C2A63"></i>Modern socialism</span>
-    <span><i style="background:#EB9A3C"></i>Reimagined democracy</span>
-    <span><i style="background:#9B9B9B"></i>Feminism</span>
-    <span><i style="background:#2F6B35"></i>Environmentalism</span>
+    <div class="pillars-row">
+      <span><i style="background:#B9A8DC"></i>Secular humanism</span>
+      <span><i style="background:#8C2020"></i>Regulated capitalism</span>
+      <span><i style="background:#5B9FD6"></i>Scientism</span>
+    </div>
+    <div class="pillars-row">
+      <span><i style="background:#5C2A63"></i>Modern socialism</span>
+      <span><i style="background:#EB9A3C"></i>Reimagined democracy</span>
+      <span><i style="background:#9B9B9B"></i>Feminism</span>
+      <span><i style="background:#2F6B35"></i>Environmentalism</span>
+    </div>
   </div>
 
   <p class="quote">&ldquo;A fusion of isms that have staying power.&rdquo;</p>
